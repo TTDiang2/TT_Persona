@@ -10,6 +10,8 @@
 <sub>左边是人格库，中间是对话，右边是注入参数。上面这张用的是内置的「涩涩」，L22 + α 0.70。</sub>
 
 > 用 AI 代理复现？让它先读 [AGENTS.md](AGENTS.md)——仓库地图、硬约束、常见任务配方都在里面。
+>
+> 想自己调一个人格？看 [TUTORIAL.md](TUTORIAL.md)，从写提示词到落库一步步走。
 
 ---
 
@@ -423,6 +425,7 @@ python neuron_steer.py chat --mix "evil:1.0,poetic:1.0" --alpha 0.7
 ```
 TT_Persona/
 ├── AGENTS.md                面向 AI 编码代理的操作手册
+├── TUTORIAL.md              手把手：调一个人格出来
 ├── start-web.bat            一键：后端 + 浏览器
 ├── start-desktop.bat        一键：后端 + 桌面版
 ├── neuron_steer.py          命令行版（chat / sweep / scan / trait）
@@ -437,6 +440,7 @@ TT_Persona/
     ├── start.bat / start.sh 启动脚本
     ├── server.py            后端 API
     ├── verify.py            端到端自检（五项）
+    ├── tune_persona.py      逐层试人格，挑最合适的那层
     ├── engine.py            模型加载 / 注入 / 扫描
     ├── data/personas.json   人格元数据
     ├── desktop/             Tauri 桌面外壳（自绘标题栏）
