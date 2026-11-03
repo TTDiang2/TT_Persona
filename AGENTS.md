@@ -60,7 +60,7 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 | `traits/*.json` | 对比提示词（`{target[], neutral[]}`），**与模型无关** | 加人格 |
 | `neuron_steer.py` | 命令行版，同一套机制的脚本入口 | 加 CLI 子命令 |
 | `app/desktop/` | Tauri 外壳：自绘标题栏、启动时探测并拉起后端 | 改窗口行为 |
-| `app/promo/` | 宣传片源码：HTML 动画 + CDP 逐帧渲染脚本 | 改宣传片 |
+| `app/promo/` | 宣传片源码：HTML 动画（`promo.html` + `render.mjs`）与真实录屏（`capture.mjs`） | 改宣传片 |
 | `app/web/src/components/TitleBar.tsx` | 自绘标题栏，`IS_TAURI` 为真时渲染 | 改窗口控件 |
 
 ---

@@ -118,14 +118,17 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 
 [![TT_Persona 宣传片](docs/video/poster.jpg)](docs/video/tt-persona-promo.mp4)
 
-26 秒 · 1920×1080 · 7 MB，点封面播放。
+37 秒 · 1920×1080 · 1.7 MB，点封面播放。
 
-片子是代码画出来的：`app/promo/promo.html` 里每一帧由 `setTime(t)` 决定，无头浏览器逐帧截图，ffmpeg 合成。想改文案或配色直接编辑那个 HTML。
+片头片尾和中间的原理段是代码画的（`app/promo/promo.html`，每一帧由 `setTime(t)` 决定，无头浏览器逐帧截图）；中间那段是**真实录屏**——CDP 驱动界面点人格、打字、发送、切视图、跑扫描，模型逐字流式输出的过程原样录下来，等待部分做了变速。
 
 ```bash
+# 代码动画段
 cd app/promo
 node render.mjs "file:///D:/TT_Persona/app/promo/promo.html" frames 30
-ffmpeg -framerate 30 -i frames/f%05d.jpg -c:v libx264 -crf 18 -pix_fmt yuv420p ../../docs/video/tt-persona-promo.mp4
+
+# 真实录屏段（需要后端在 8791 跑着）
+node capture.mjs http://127.0.0.1:8791 cap
 ```
 
 ---
