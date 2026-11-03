@@ -184,7 +184,7 @@ export default function App() {
           <div className="leading-tight">
             <div className="text-[14px] font-medium">TT_Persona</div>
             <div className="text-[11px] text-[#8A8781]">
-              {status?.model ?? "Qwen3.5-4B"} · {status?.layers ?? 32} 层
+              {status ? `${status.model} · ${status.layers} 层` : "正在连接后端…"}
             </div>
           </div>
         </div>
@@ -236,9 +236,9 @@ export default function App() {
             <div className="flex flex-col items-center gap-4">
               <ThinkingOrb state="working" size={64} />
               <div className="text-center">
-                <div className="text-[13px] font-medium">正在把 4B 模型加载进显存</div>
+                <div className="text-[13px] font-medium">正在加载模型</div>
                 <div className="mt-1 text-[11px] text-[#8A8781]">
-                  约 8.5 GB · 首次启动需要十几秒
+                  首次启动需要十几秒，权重会常驻显存
                 </div>
               </div>
             </div>

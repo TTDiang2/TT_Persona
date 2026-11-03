@@ -53,6 +53,7 @@ class Engine:
         self.cfg = None
         self.device = None
         self.state = "idle"          # idle | loading | ready | error
+        self.model_name = MODEL_ID.split("/")[-1]
         self.error = ""
         self.lock = threading.Lock()  # 单卡串行
         self.norms = {}
@@ -73,6 +74,9 @@ class Engine:
         t0 = time.time()
         try:
             model_id = str(MODEL_DIR) if MODEL_DIR.exists() else MODEL_ID
+            # 显示名跟着实际加载的来源走：本地目录取目录名，HF 仓库取仓库名
+            self.model_name = (Path(model_id).name if Path(model_id).exists()
+                               else model_id.split("/")[-1])
             self.tok_proc = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
             self.tok = self.tok_proc.tokenizer
             self.model = None
@@ -138,7 +142,7 @@ class Engine:
             "layers": len(self.layers) if self.layers else 0,
             "hidden": getattr(self.cfg, "hidden_size", 0),
             "intermediate": getattr(self.cfg, "intermediate_size", 0),
-            "model": MODEL_ID.split("/")[-1],
+            "model": self.model_name,
             "device": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         }
         ok, why = self.supports_neuron()
