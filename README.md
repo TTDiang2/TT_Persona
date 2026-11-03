@@ -85,6 +85,23 @@ cd ..
 start.bat
 ```
 
+装好之后根目录有两个一键脚本：
+
+| 脚本 | 干什么 |
+|---|---|
+| `start-web.bat` | 拉起后端（已在跑就跳过），打开浏览器 |
+| `start-desktop.bat` | 拉起后端、等它就绪，再启动桌面版 |
+
+两个都默认用 Qwen3.5-4B，Python 和模型路径写在文件开头，换环境改那几行即可。
+
+> 这两个 `.bat` 用 GBK 编码（cmd 的原生代码页），GitHub 上预览会显示乱码，下载下来运行正常。
+
+手动启动的话：
+
+```bash
+cd app && D:/AI/LLM/venv/Scripts/python.exe server.py
+```
+
 浏览器会自动打开 http://127.0.0.1:8791 ，十几秒后顶部显示「就绪」。
 
 另开一个终端跑一次自检，五项 PASS 就说明环境通了：
@@ -344,6 +361,8 @@ W_down · (a + Δ·e_j)  =  W_down · a  +  Δ · W_down[:, j]
 ```
 TT_Persona/
 ├── AGENTS.md                面向 AI 编码代理的操作手册
+├── start-web.bat            一键：后端 + 浏览器
+├── start-desktop.bat        一键：后端 + 桌面版
 ├── neuron_steer.py          命令行版（chat / sweep / scan / trait）
 ├── persona_demo.py          一次跑多个人格对照
 ├── gguf_meta.py             读 GGUF 元数据的小工具
