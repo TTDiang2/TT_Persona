@@ -1,0 +1,10 @@
+# 先按 README 用对应 CUDA 索引装 torch / torchvision，再装这里其余依赖
+torch>=2.9
+torchvision
+transformers>=5.20
+accelerate
+pillow
+fastapi
+uvicorn[standard]
+sse-starlette
+huggingface_hub

@@ -1,0 +1,65 @@
+{
+  "chaotic": {
+    "name": "chaotic",
+    "label": "chaotic",
+    "layer": 18,
+    "alpha": 0.8,
+    "color": "#378ADD",
+    "notes": "",
+    "created": "2026-11-03 09:36"
+  },
+  "evil": {
+    "name": "evil",
+    "label": "evil",
+    "layer": 18,
+    "alpha": 0.8,
+    "color": "#378ADD",
+    "notes": "",
+    "created": "2026-11-03 09:36"
+  },
+  "noir": {
+    "name": "noir",
+    "label": "noir",
+    "layer": 18,
+    "alpha": 0.8,
+    "color": "#378ADD",
+    "notes": "",
+    "created": "2026-11-03 09:36"
+  },
+  "poetic": {
+    "name": "poetic",
+    "label": "poetic",
+    "layer": 18,
+    "alpha": 0.8,
+    "color": "#378ADD",
+    "notes": "",
+    "created": "2026-11-03 09:36"
+  },
+  "terse": {
+    "name": "terse",
+    "label": "terse",
+    "layer": 18,
+    "alpha": 0.8,
+    "color": "#378ADD",
+    "notes": "",
+    "created": "2026-11-03 09:36"
+  },
+  "warm": {
+    "name": "warm",
+    "label": "warm",
+    "layer": 18,
+    "alpha": 0.8,
+    "color": "#378ADD",
+    "notes": "",
+    "created": "2026-11-03 09:36"
+  },
+  "flirty": {
+    "name": "flirty",
+    "label": "涩涩",
+    "layer": 22,
+    "alpha": 0.7,
+    "color": "#D4537E",
+    "notes": "暧昧撩人的说话方式 · L22 最稳，α 0.6-0.8 之间，再高会复读",
+    "created": "2026-11-03 10:56"
+  }
+}
