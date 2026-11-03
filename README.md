@@ -85,6 +85,12 @@ start.bat
 
 浏览器会自动打开 http://127.0.0.1:8791 ，十几秒后顶部显示「就绪」。
 
+另开一个终端跑一次自检，五项 PASS 就说明环境通了：
+
+```bash
+D:/AI/LLM/venv/Scripts/python.exe app/verify.py
+```
+
 想改前端就 `cd app/web && npm run dev`，走 5273 端口（带 API 代理）。改完记得 `npm run build`。
 
 ---
@@ -305,6 +311,7 @@ W_down · (a + Δ·e_j)  =  W_down · a  +  Δ · W_down[:, j]
 
 ```
 TT_Persona/
+├── AGENTS.md                面向 AI 编码代理的操作手册
 ├── neuron_steer.py          命令行版（chat / sweep / scan / trait）
 ├── persona_demo.py          一次跑多个人格对照
 ├── gguf_meta.py             读 GGUF 元数据的小工具
@@ -314,6 +321,7 @@ TT_Persona/
 └── app/                     网页版
     ├── start.bat / start.sh 启动脚本
     ├── server.py            后端 API
+    ├── verify.py            端到端自检（五项）
     ├── engine.py            模型加载 / 注入 / 扫描
     ├── data/personas.json   人格元数据
     └── web/                 前端（Vite + React + Tailwind + shadcn）
