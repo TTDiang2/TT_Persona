@@ -126,6 +126,11 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
                 </div>
               </div>
 
+              {p.kind === "neuron" ? (
+                <div className="mt-3 rounded-lg bg-[#F7F5F1] px-2.5 py-2 text-[10px] leading-relaxed text-[#78716C]">
+                  {(p.specs ?? []).map((x) => `L${x.layer} N${x.neuron} ${x.dose > 0 ? "+" : ""}${x.dose}`).join("  ·  ")}
+                </div>
+              ) : (
               <div className="mt-3 flex items-center gap-2">
                 <span className="w-6 text-[10px] text-[#A8A29E]">α</span>
                 <input
@@ -152,14 +157,13 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
                   {(draft[p.name] ?? p.alpha).toFixed(2)}
                 </span>
               </div>
+              )}
 
               <div className="mt-3 flex items-center gap-2 border-t border-[#F2F0EB] pt-3">
                 <button
                   onClick={() => {
-                    ctx.setActiveName(p.name)
+                    ctx.applyPersona(p)
                     ctx.setAlpha(p.alpha)
-                    ctx.setLayer(p.layer)
-                    ctx.setMode("trait")
                     ctx.goto("lab")
                   }}
                   className="rounded-md bg-[#F5F3EF] px-2.5 py-1 text-[11px] text-[#44403C] hover:bg-[#EDEAE4]"
@@ -283,8 +287,27 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
   const [target, setTarget] = useState("")
   const [neutral, setNeutral] = useState("")
   const [busy, setBusy] = useState(false)
+  const [probing, setProbing] = useState(false)
+  const [probe, setProbe] = useState<{ layer: number; text: string; seconds: number }[] | null>(null)
 
   const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean)
+
+  async function runProbe() {
+    const t = lines(target)
+    const n = lines(neutral)
+    if (!t.length || t.length !== n.length)
+      return ctx.toast("提示词不匹配", "正负两组数量要一致", "error")
+    setProbing(true)
+    setProbe(null)
+    try {
+      const r = await api.probeLayers({ target: t, neutral: n, layers: [14, 18, 22, 26], alpha })
+      setProbe(r.results)
+    } catch (e) {
+      ctx.toast("试层失败", String(e), "error")
+    } finally {
+      setProbing(false)
+    }
+  }
 
   async function submit() {
     const t = lines(target)
@@ -400,6 +423,37 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
           </Field>
         </div>
 
+        {probe && (
+          <div className="mt-3 rounded-xl border border-[#E3E0D9] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-medium">同一句话，不同层</span>
+              <span className="text-[10px] text-[#A8A29E]">点一行选它</span>
+            </div>
+            <div className="space-y-1.5">
+              {probe.map((r) => (
+                <button
+                  key={r.layer}
+                  onClick={() => { setLayer(r.layer); setProbe(null) }}
+                  className={`block w-full rounded-lg border px-2.5 py-2 text-left transition ${
+                    layer === r.layer
+                      ? "border-[#185FA5] bg-[#E6F1FB]"
+                      : "border-[#E3E0D9] hover:border-[#A8A29E]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] tabular-nums text-[#78716C]">L{r.layer}</span>
+                    <span className="text-[10px] text-[#B5B0A8]">{r.seconds}s</span>
+                    <span className="text-[10px] text-[#B5B0A8]">{r.text.length} 字</span>
+                  </div>
+                  <div className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-[#57534E]">
+                    {r.text || "(空)"}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 flex items-center justify-end gap-2">
           <span className="mr-auto text-[10px] tabular-nums text-[#B5B0A8]">
             {lines(target).length} 正 / {lines(neutral).length} 负
@@ -409,6 +463,13 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
             className="rounded-lg border border-[#E3E0D9] px-3 py-1.5 text-[11px] text-[#57534E]"
           >
             取消
+          </button>
+          <button
+            onClick={runProbe}
+            disabled={probing || busy}
+            className="rounded-lg border border-[#E3E0D9] px-3 py-1.5 text-[11px] text-[#57534E] disabled:opacity-50"
+          >
+            {probing ? "试层中…" : "试层"}
           </button>
           <button
             onClick={submit}

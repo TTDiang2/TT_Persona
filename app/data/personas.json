@@ -61,5 +61,27 @@
     "color": "#D4537E",
     "notes": "L22 · α 0.7",
     "created": "2026-11-03 19:50"
+  },
+  "villain": {
+    "name": "villain",
+    "label": "反派（社区配方）",
+    "layer": 14,
+    "alpha": 0.8,
+    "color": "#E24B4A",
+    "notes": "L14 N8949 +1.0 / L13 N7956 -1.0 · 社区复现",
+    "created": "2026-11-03 20:00",
+    "kind": "neuron",
+    "specs": [
+      {
+        "layer": 14,
+        "neuron": 8949,
+        "dose": 1.0
+      },
+      {
+        "layer": 13,
+        "neuron": 7956,
+        "dose": -1.0
+      }
+    ]
   }
 }

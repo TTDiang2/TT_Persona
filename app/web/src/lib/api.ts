@@ -16,6 +16,8 @@ export type Status = {
 }
 
 export type Persona = {
+  kind?: "trait" | "neuron"
+  specs?: NeuronSpec[]
   name: string
   label: string
   layer: number
@@ -110,6 +112,12 @@ export const api = {
     }),
   scan: (body: unknown) =>
     jfetch<ScanResult>("/api/scan", { method: "POST", headers: J, body: JSON.stringify(body) }),
+  probeLayers: (body: unknown) =>
+    jfetch<{
+      prompt: string
+      alpha: number
+      results: { layer: number; text: string; seconds: number }[]
+    }>("/api/probe-layers", { method: "POST", headers: J, body: JSON.stringify(body) }),
   scanCausal: (body: unknown) =>
     jfetch<{
       layer: number

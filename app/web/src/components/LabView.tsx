@@ -211,14 +211,15 @@ function PersonaRail({ ctx }: { ctx: Ctx }) {
       </div>
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
         {ctx.personas.map((p) => {
-          const on = ctx.active?.name === p.name && ctx.mode === "trait"
+          const on =
+            p.kind === "neuron"
+              ? ctx.mode === "neuron" && ctx.specs.length === (p.specs?.length ?? 0) &&
+                ctx.specs.every((s) => p.specs?.some((q) => q.layer === s.layer && q.neuron === s.neuron))
+              : ctx.active?.name === p.name && ctx.mode === "trait"
           return (
             <button
               key={p.name}
-              onClick={() => {
-                ctx.setActiveName(p.name)
-                ctx.setMode("trait")
-              }}
+              onClick={() => ctx.applyPersona(p)}
               className={`w-full rounded-xl px-3 py-2 text-left transition ${
                 on ? "bg-[#F2EFE9]" : "hover:bg-[#FAF8F5]"
               }`}
@@ -231,7 +232,7 @@ function PersonaRail({ ctx }: { ctx: Ctx }) {
                 </span>
               </div>
               <div className="mt-0.5 pl-3.5 text-[10px] text-[#B5B0A8]">
-                {p.name} · L{p.layer}
+                {p.kind === "neuron" ? `神经元 ×${p.specs?.length ?? 0}` : `${p.name} · L${p.layer}`}
               </div>
             </button>
           )

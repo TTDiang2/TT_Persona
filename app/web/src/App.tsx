@@ -17,6 +17,7 @@ export type Ctx = {
   refreshPersonas: () => Promise<void>
   active: Persona | null
   setActiveName: (n: string) => void
+  applyPersona: (p: Persona) => void
   alpha: number
   setAlpha: (n: number) => void
   layer: number
@@ -133,6 +134,18 @@ export default function App() {
     }
   }, [active])
 
+  // 神经元型预设：选中即把 specs 灌进参数面板
+  const applyPersona = useCallback((p: Persona) => {
+    if (p.kind === "neuron") {
+      setSpecs(p.specs ?? [])
+      setMode("neuron")
+      setActiveName("")
+    } else {
+      setActiveName(p.name)
+      setMode("trait")
+    }
+  }, [])
+
   useEffect(() => {
     if (status?.supports_neuron === false && mode === "neuron") setMode("trait")
   }, [status?.supports_neuron, mode])
@@ -161,6 +174,7 @@ export default function App() {
     refreshPersonas,
     active,
     setActiveName,
+    applyPersona,
     alpha,
     setAlpha,
     layer,

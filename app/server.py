@@ -312,6 +312,26 @@ class CausalIn(BaseModel):
     topk: int = 12
 
 
+class ProbeIn(BaseModel):
+    target: list[str]
+    neutral: list[str]
+    layers: list[int] = [14, 18, 22, 26]
+    alpha: float = 0.7
+    prompt: str = "介绍一下你自己。"
+    max_tokens: int = 60
+
+
+@app.post("/api/probe-layers")
+def probe_layers(body: ProbeIn):
+    if not body.target or len(body.target) != len(body.neutral):
+        raise HTTPException(400, "正负提示词数量要一致")
+    try:
+        return engine.probe_layers({"target": body.target, "neutral": body.neutral},
+                                   body.layers, body.alpha, body.prompt, body.max_tokens)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+
+
 @app.post("/api/scan-causal")
 def scan_causal(body: CausalIn):
     try:
