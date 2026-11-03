@@ -21,8 +21,10 @@ export type Ctx = {
   setAlpha: (n: number) => void
   layer: number
   setLayer: (n: number) => void
-  mode: "trait" | "neuron"
-  setMode: (m: "trait" | "neuron") => void
+  mode: "trait" | "mix" | "neuron"
+  setMode: (m: "trait" | "mix" | "neuron") => void
+  mixItems: { trait: string; weight: number }[]
+  setMixItems: Dispatch<SetStateAction<{ trait: string; weight: number }[]>>
   specs: NeuronSpec[]
   setSpecs: (s: NeuronSpec[]) => void
   temperature: number
@@ -60,7 +62,8 @@ export default function App() {
   const [activeName, setActiveName] = useState("")
   const [alpha, setAlpha] = useState(0.8)
   const [layer, setLayer] = useState(18)
-  const [mode, setMode] = useState<"trait" | "neuron">("trait")
+  const [mode, setMode] = useState<"trait" | "mix" | "neuron">("trait")
+  const [mixItems, setMixItems] = useState<{ trait: string; weight: number }[]>([])
   const [specs, setSpecs] = useState<NeuronSpec[]>([])
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState(220)
@@ -135,12 +138,17 @@ export default function App() {
   }, [status?.supports_neuron, mode])
 
   const injection: Injection = useMemo(() => {
+    if (mode === "mix") {
+      return mixItems.length
+        ? ({ mode: "multi", items: mixItems, alpha } as Injection)
+        : ({ mode: "none" } as Injection)
+    }
     if (mode === "neuron") {
       return specs.length ? { mode: "neuron", specs } : { mode: "none" }
     }
     if (!active) return { mode: "none" }
     return { mode: "trait", trait: active.name, alpha, layer }
-  }, [mode, specs, active, alpha, layer])
+  }, [mode, specs, active, alpha, layer, mixItems])
 
   const addSpec = useCallback((s: NeuronSpec) => {
     setSpecs((cur) => [...cur.filter((x) => !(x.layer === s.layer && x.neuron === s.neuron)), s])
@@ -159,6 +167,8 @@ export default function App() {
     setLayer,
     mode,
     setMode,
+    mixItems,
+    setMixItems,
     specs,
     setSpecs,
     temperature,

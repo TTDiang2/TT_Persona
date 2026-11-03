@@ -36,6 +36,7 @@ export type NeuronSpec = {
 export type Injection =
   | { mode: "none" }
   | { mode: "trait"; trait: string; alpha: number; layer: number }
+  | { mode: "multi"; items: { trait: string; weight: number }[]; alpha: number }
   | { mode: "neuron"; specs: NeuronSpec[] }
 
 export type Msg = {

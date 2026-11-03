@@ -103,9 +103,10 @@ dense_mlp(layer)        # 取 dense MLP；MoE 层返回 None
 Engine.supports_neuron()# 能力探测，返回 (bool, 人话原因)
 
 # 注入
-Engine.install(injection)   # 分发到下面两个
+Engine.install(injection)   # 分发到下面三种
 hook_direction(...)         # 在 layers[L] 输出上加向量
 hook_neuron(...)            # 在 down_proj 的输入上改第 j 位
+# mode="multi"：多个人格各注入自己的采集层，权重先归一（除以权重和）再乘 α
 
 # 剂量与向量
 Engine.residual_norm(L)     # 该层残差流中位范数，α 的分母

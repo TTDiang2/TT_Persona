@@ -15,8 +15,8 @@ export default function ParamPanel({ ctx }: { ctx: Ctx }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#F5F3EF] p-1">
-        {(["trait", "neuron"] as const).map((m) => (
+      <div className="grid grid-cols-3 gap-1 rounded-lg bg-[#F5F3EF] p-1">
+        {(["trait", "mix", "neuron"] as const).map((m) => (
           <button
             key={m}
             disabled={m === "neuron" && !neuronOk}
@@ -29,7 +29,7 @@ export default function ParamPanel({ ctx }: { ctx: Ctx }) {
                   : "text-[#78716C] hover:text-[#44403C]"
             }`}
           >
-            {m === "trait" ? "人格方向" : "单个神经元"}
+            {m === "trait" ? "方向" : m === "mix" ? "组合" : "神经元"}
           </button>
         ))}
       </div>
@@ -86,6 +86,8 @@ export default function ParamPanel({ ctx }: { ctx: Ctx }) {
             </div>
           </div>
         </>
+      ) : ctx.mode === "mix" ? (
+        <MixPanel ctx={ctx} />
       ) : (
         <div className="flex flex-col gap-2">
           {ctx.specs.length === 0 && (
@@ -223,5 +225,72 @@ export function Slider({
         className="h-1 w-full cursor-pointer appearance-none rounded-full bg-[#E7E5E0] accent-[#1C1917] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1C1917]"
       />
     </label>
+  )
+}
+
+function MixPanel({ ctx }: { ctx: Ctx }) {
+  const toggle = (name: string) =>
+    ctx.setMixItems((cur) =>
+      cur.some((x) => x.trait === name)
+        ? cur.filter((x) => x.trait !== name)
+        : [...cur, { trait: name, weight: 1 }],
+    )
+  const setW = (name: string, w: number) =>
+    ctx.setMixItems((cur) => cur.map((x) => (x.trait === name ? { ...x, weight: w } : x)))
+
+  return (
+    <>
+      <div className="text-[11px] leading-relaxed text-[#78716C]">
+        勾选两个以上，各自注入自己的层
+      </div>
+
+      <div className="flex flex-col gap-1">
+        {ctx.personas.map((p) => {
+          const it = ctx.mixItems.find((x) => x.trait === p.name)
+          return (
+            <div
+              key={p.name}
+              className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${
+                it ? "border-[#D4537E]/45 bg-[#FDF6F8]" : "border-[#E3E0D9]"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={!!it}
+                onChange={() => toggle(p.name)}
+                className="h-3 w-3 accent-[#1C1917]"
+              />
+              <span className="flex-1 truncate text-[11px]">{p.label || p.name}</span>
+              <input
+                type="number"
+                step={0.1}
+                min={0}
+                max={2}
+                value={it?.weight ?? 1}
+                disabled={!it}
+                onChange={(e) => setW(p.name, Number(e.target.value))}
+                className="w-12 rounded-md border border-[#E3E0D9] px-1 py-0.5 text-right text-[10px] tabular-nums disabled:opacity-40"
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="flex flex-col items-center gap-1 pt-1">
+        <TorqueDial
+          value={ctx.alpha}
+          min={0}
+          max={1.5}
+          step={0.05}
+          onChange={(v) => ctx.setAlpha(v)}
+          label="总强度 α"
+          size={96}
+        />
+      </div>
+
+      <div className="rounded-xl bg-[#F7F5F1] p-3 text-[10.5px] leading-relaxed text-[#78716C]">
+        权重决定各占多少，α 是整体剂量。两种风格打架时，把 α 压到 0.5 左右。
+      </div>
+    </>
   )
 }

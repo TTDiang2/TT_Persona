@@ -193,6 +193,51 @@ class Engine:
             handles.append(self.layers[layer].register_forward_hook(h))
             desc = f"{name} · L{layer} · α={alpha:.2f}"
 
+        elif injection["mode"] == "mix":
+            items = injection.get("items", [])
+            layer = int(injection.get("layer") or 18)
+            alpha = float(injection.get("alpha", 0.8))
+            parts = []
+            for it in items:
+                v, _ = self.load_vector(it["trait"])   # 维度校验在 load_vector 里做
+                parts.append(v * float(it.get("weight", 1.0)))
+            vec = torch.stack(parts).sum(0)
+            vec = vec / vec.norm()
+            scale = self.residual_norm(layer)
+            dev = next(self.layers[layer].parameters()).device
+            v = (vec.float() * alpha * scale).to(device=dev, dtype=torch.bfloat16).view(1, 1, -1)
+
+            def h(module, args, output):
+                if isinstance(output, tuple):
+                    return (output[0] + v,) + output[1:]
+                return output + v
+
+            handles.append(self.layers[layer].register_forward_hook(h))
+            desc = " + ".join(f"{it['trait']}×{float(it.get('weight', 1.0)):.1f}" for it in items)
+            desc += f" · L{layer} · α={alpha:.2f}"
+
+        elif injection["mode"] == "multi":
+            # 每个人格注入它自己的采集层，权重 × alpha 作为强度
+            alpha = float(injection.get("alpha", 0.8))
+            items = injection.get("items", [])
+            # 权重归一：保证 α 和单人格模式的剂量语义一致，避免叠加推爆
+            total = sum(max(0.0, float(it.get("weight", 1.0))) for it in items) or 1.0
+            for it in items:
+                vec, layer = self.load_vector(it["trait"])
+                w = float(it.get("weight", 1.0)) / total
+                scale = self.residual_norm(layer)
+                dev = next(self.layers[layer].parameters()).device
+                v = (vec.float() * (w * alpha) * scale).to(device=dev, dtype=torch.bfloat16).view(1, 1, -1)
+
+                def h(module, args, output, v=v):
+                    if isinstance(output, tuple):
+                        return (output[0] + v,) + output[1:]
+                    return output + v
+
+                handles.append(self.layers[layer].register_forward_hook(h))
+            desc = " + ".join(f"{it['trait']}×{float(it.get('weight', 1.0)):.1f}" for it in injection.get("items", []))
+            desc += f" · 各自层 · α={alpha:.2f}"
+
         elif injection["mode"] == "neuron":
             for spec in injection.get("specs", []):
                 L, j = int(spec["layer"]), int(spec["neuron"])

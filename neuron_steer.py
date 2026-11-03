@@ -242,6 +242,16 @@ def cmd_chat(args):
         log("注入：")
         handles += hook_direction(layers, layer, vec, args.alpha,
                                   residual_norm(model, tok, layer))
+    if args.mix:
+        items = []
+        for part in args.mix.split(","):
+            name, _, w = part.partition(":")
+            items.append({"trait": name.strip(), "weight": float(w or 1.0)})
+        log("混合（各注入各自层）：" + " + ".join(f"{i['trait']}×{i['weight']:.1f}" for i in items))
+        for it in items:
+            v, l = load_trait(it["trait"])
+            handles += hook_direction(layers, l, v, args.alpha * it["weight"],
+                                      residual_norm(model, tok, l))
 
     if args.once:
         print(generate(model, tok, args.once, args.max_new_tokens,
@@ -349,6 +359,7 @@ def main():
     c = sub.add_parser("chat")
     c.add_argument("--steer", type=parse_spec, nargs="+")
     c.add_argument("--trait")
+    c.add_argument("--mix", help="多个人格按权重相加，例如 evil:0.7,poetic:0.5")
     c.add_argument("--alpha", type=float, default=1.0)
     c.add_argument("--max-new-tokens", type=int, default=200)
     c.add_argument("--temperature", type=float, default=0.7)
