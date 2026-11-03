@@ -297,7 +297,7 @@ export default function LocateView({ ctx }: { ctx: Ctx }) {
                   {!rows.length && (
                     <tr>
                       <td colSpan={6} className="py-10 text-center text-[11px] text-[#C4BFB6]">
-                        还没有结果
+                        扫描后这里显示结果
                       </td>
                     </tr>
                   )}

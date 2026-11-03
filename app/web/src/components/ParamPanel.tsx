@@ -80,7 +80,7 @@ export default function ParamPanel({ ctx }: { ctx: Ctx }) {
         <div className="flex flex-col gap-2">
           {ctx.specs.length === 0 && (
             <div className="rounded-lg border border-dashed border-[#E3E0D9] p-3 text-[11px] leading-relaxed text-[#A8A29E]">
-              还没有神经元。去「定位」里扫一个，或者在下面手动加。
+              从「定位」扫一个，或者在下面手动加。
             </div>
           )}
           {ctx.specs.map((s) => (

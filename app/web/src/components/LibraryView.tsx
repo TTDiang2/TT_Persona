@@ -239,7 +239,7 @@ function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
       <DialogContent className="max-w-sm rounded-2xl">
         <DialogTitle className="text-[13px]">删除这个人格？</DialogTitle>
         <p className="mt-2 text-[11px] leading-relaxed text-[#78716C]">
-          向量文件和提示词会一起删掉，不能撤销。按住滑块拖到底确认。
+          向量文件和提示词会一起删掉。按住滑块拖到底确认。
         </p>
         <div className="mt-4">
           <DragToConfirm label="拖动删除" confirmedLabel="已删除" variant="danger" size="md" onConfirm={onConfirm} />

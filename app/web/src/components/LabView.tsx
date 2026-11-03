@@ -238,7 +238,7 @@ function PersonaRail({ ctx }: { ctx: Ctx }) {
         })}
         {ctx.personas.length === 0 && (
           <div className="p-3 text-[11px] leading-relaxed text-[#B5B0A8]">
-            还没有人格。去「人格库」新建一个。
+            去「人格库」新建一个人格，这里就会列出来。
           </div>
         )}
       </div>

@@ -34,7 +34,7 @@ export default function CompareView({ ctx }: { ctx: Ctx }) {
       const p = ctx.personas.find((x) => x.name === s.persona)
       return {
         key: `s${i}`,
-        title: p ? `${p.label || p.name} · α ${s.alpha.toFixed(2)}` : "未选择",
+        title: p ? `${p.label || p.name} · α ${s.alpha.toFixed(2)}` : "选择人格",
         color: p?.color ?? "#378ADD",
         injection: p
           ? ({ mode: "trait", trait: p.name, alpha: s.alpha, layer: p.layer } as Injection)
@@ -128,7 +128,7 @@ export default function CompareView({ ctx }: { ctx: Ctx }) {
                 }
                 className="rounded-md border border-[#E3E0D9] bg-white px-1.5 py-1 text-[11px] outline-none"
               >
-                <option value="">未选择</option>
+                <option value="">选择人格</option>
                 {ctx.personas.map((p) => (
                   <option key={p.name} value={p.name}>
                     {p.label || p.name}
