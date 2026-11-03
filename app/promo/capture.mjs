@@ -37,6 +37,7 @@ function send(method, params = {}) {
   })
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const log = console.log
 
 async function js(expression) {
   const r = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true })
@@ -97,6 +98,16 @@ async function type(text, delay = 34) {
   }
 }
 
+async function waitFor(expr, timeout = 10000) {
+  const t0 = Date.now()
+  while (Date.now() - t0 < timeout) {
+    if (await js(expr)) return true
+    await sleep(150)
+  }
+  log(`waitFor 超时: ${expr}`)
+  return false
+}
+
 async function waitStable(minMs = 2500, quiet = 1600, maxMs = 120000) {
   const t0 = Date.now()
   let last = -1
@@ -117,7 +128,7 @@ async function waitStable(minMs = 2500, quiet = 1600, maxMs = 120000) {
 await send("Page.enable")
 await send("Runtime.enable")
 await send("Emulation.setDeviceMetricsOverride", {
-  width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false,
+  width: 1440, height: 810, deviceScaleFactor: 1, mobile: false,
 })
 await send("Page.navigate", { url })
 
@@ -134,7 +145,7 @@ const mark = (label) => marks.push({ label, t: (Date.now() - recT0) / 1000 })
 
 // ---------- 开录 ----------
 await send("Page.startScreencast", {
-  format: "jpeg", quality: 88, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1,
+  format: "jpeg", quality: 92, maxWidth: 1440, maxHeight: 810, everyNthFrame: 1,
 })
 recT0 = Date.now()
 console.log("recording...")
@@ -146,7 +157,7 @@ await clickText("涩涩", "aside")
 await sleep(400); await dismiss(); await sleep(300)
 await setRange(1, 120)              // 最大长度调短，回复更利落
 await sleep(300)
-await type("我明天要去新公司报到，有点紧张，给我点建议。")
+await type("我爱你")
 await sleep(400)
 await clickText("发送")
 mark("send-1")
@@ -158,7 +169,7 @@ await clickText("清空会话")
 await sleep(500)
 await clickText("evil", "aside")
 await sleep(400); await dismiss(); await sleep(300)
-await type("我明天要去新公司报到，有点紧张，给我点建议。")
+await type("我爱你")
 await sleep(400)
 await clickText("发送")
 mark("send-2")
@@ -168,20 +179,51 @@ await sleep(900)
 
 // ---- 2) 对比：同一个人格，两个剂量 ----
 await clickText("对比")
-await sleep(900); await dismiss(); await sleep(300)
+await waitFor("document.body.innerText.includes('并排运行')")
+await sleep(400); await dismiss(); await sleep(300)
+await js(`(()=>{
+  const ta=document.querySelector('textarea');
+  const set=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;
+  set.call(ta, "我爱你");
+  ta.dispatchEvent(new Event('input',{bubbles:true}));
+  return true;
+})()`)
+await sleep(300)
 await setSelect(0, "flirty"); await setRange(0, 0.7)
 await setSelect(1, "flirty"); await setRange(1, 1.2)
-await sleep(600)
+await sleep(500)
+// 校验：两栏都应该是 flirty，剂量 0.7 / 1.2
+for (let i = 0; i < 6; i++) {
+  const ok = await js(`(()=>{
+    const s=[...document.querySelectorAll('select')].map(x=>x.value);
+    const r=[...document.querySelectorAll('input[type=range]')].map(x=>x.value);
+    const t=(document.querySelector('textarea')||{}).value||'';
+    return (s.length===2 && s[0]==='flirty' && s[1]==='flirty' && r[0]==='0.7' && r[1]==='1.2' && t==='我爱你');
+  })()`)
+  if (ok) { log("对比页参数已就位"); break }
+  await setSelect(0, "flirty"); await setRange(0, 0.7)
+  await setSelect(1, "flirty"); await setRange(1, 1.2)
+  await js(`(()=>{
+    const ta=document.querySelector('textarea');
+    const set=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;
+    set.call(ta,'我爱你'); ta.dispatchEvent(new Event('input',{bubbles:true}));
+  })()`)
+  await sleep(300)
+}
+await sleep(400)
 mark("compare-ready")
 await clickText("并排运行")
 mark("compare-run")
-await waitStable(3500, 2500)
+// 排队期间文本不变，必须等三栏都跑完
+await waitFor("!document.body.innerText.includes('排队中')", 180000)
+await waitStable(2000, 1800)
 mark("compare-done")
 await sleep(1000)
 
 // ---- 3) 定位：扫描后多停一会儿 ----
 await clickText("定位")
-await sleep(900); await dismiss(); await sleep(300)
+await waitFor("document.body.innerText.includes('开始扫描')")
+await sleep(400); await dismiss(); await sleep(300)
 await clickText("开始扫描")
 mark("scan-run")
 await waitStable(3500, 2500)
@@ -191,7 +233,8 @@ mark("scan-hold")
 
 // ---- 4) 人格库 ----
 await clickText("人格库")
-await sleep(900); await dismiss()
+await waitFor("document.body.innerText.includes('导出全部')")
+await sleep(400); await dismiss()
 mark("library")
 await sleep(3200)
 mark("end")

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>TT_Persona overlay</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1920px; height:1080px; overflow:hidden; background:transparent; }
+  body { font-family:"Segoe UI","Microsoft YaHei UI","PingFang SC",system-ui,sans-serif;
+         color:#1C1917; -webkit-font-smoothing:antialiased; }
+  #stage { position:relative; width:1920px; height:1080px; }
+
+  .chrome { position:absolute; left:96px; top:210px; width:1440px; height:810px;
+            border-radius:16px; border:1px solid rgba(28,25,23,0.14);
+            box-shadow:0 40px 90px -34px rgba(28,25,23,0.32), 0 2px 6px rgba(28,25,23,0.06); }
+
+  .ch { position:absolute; left:96px; top:44px; width:1400px; opacity:0; }
+  .ch .num { font-size:20px; letter-spacing:0.18em; color:#B5B0A8; }
+  .ch .num b { color:#D4537E; font-weight:600; }
+  .ch h2 { margin-top:12px; font-size:44px; line-height:1.2; font-weight:500; letter-spacing:-0.02em; }
+  .ch .desc { position:absolute; left:660px; top:34px; font-size:22px; line-height:1.6; color:#78716C; }
+  .ch .desc b { color:#1C1917; font-weight:500; }
+
+  .card { position:absolute; left:1568px; top:210px; width:288px; opacity:0;
+          border:1px solid #E3E0D9; border-radius:14px; background:#fff; padding:22px 22px 20px; }
+  .card .k { font-size:17px; letter-spacing:0.14em; color:#B5B0A8; }
+  .card .row { margin-top:16px; }
+  .card .row .lb { font-size:18px; color:#A8A29E; }
+  .card .row .vl { margin-top:4px; font-size:26px; font-weight:500; letter-spacing:-0.01em; }
+  .card .row .vl.pink { color:#D4537E; }
+  .card .row .vl.blue { color:#185FA5; }
+
+  .brand { position:absolute; left:96px; top:1038px; font-size:18px; color:#B5B0A8; letter-spacing:0.16em; }
+  .dots { position:absolute; left:1568px; top:1038px; display:flex; gap:9px; }
+  .dots i { width:8px; height:8px; border-radius:50%; background:#DCD8D0; display:block; }
+  .dots i.on { background:#1C1917; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg width="1920" height="1080" style="position:absolute;inset:0">
+    <defs>
+      <mask id="hole">
+        <rect width="1920" height="1080" fill="#fff"/>
+        <rect x="96" y="210" width="1440" height="810" rx="16" fill="#000"/>
+      </mask>
+    </defs>
+    <rect width="1920" height="1080" fill="#F7F6F3" mask="url(#hole)"/>
+  </svg>
+
+  <div class="chrome"></div>
+
+  <div class="ch" id="c1">
+    <div class="num"><b>01</b> / 04</div>
+    <h2>同一个问题，换个人格</h2>
+    <div class="desc">输入 <b>「我爱你」</b><br>涩涩和 evil 给出两种截然不同的反应</div>
+  </div>
+
+  <div class="ch" id="c2">
+    <div class="num"><b>02</b> / 04</div>
+    <h2>同一个向量，只拧剂量</h2>
+    <div class="desc">人格不变，α 从 <b>0.70</b> 拉到 <b>1.20</b><br>右边那栏开始复读</div>
+  </div>
+
+  <div class="ch" id="c3">
+    <div class="num"><b>03</b> / 04</div>
+    <h2>扫出是哪个神经元在管</h2>
+    <div class="desc">八组对比提示词<br>定位到<b>具体层与编号</b></div>
+  </div>
+
+  <div class="ch" id="c4">
+    <div class="num"><b>04</b> / 04</div>
+    <h2>攒成一个人格库</h2>
+    <div class="desc">7 个开箱即用<br>一个人格就是一个 <b>13 KB</b> 的向量</div>
+  </div>
+
+  <div class="card" id="k1">
+    <div class="k">当前注入</div>
+    <div class="row"><div class="lb">人格</div><div class="vl pink">涩涩 → evil</div></div>
+    <div class="row"><div class="lb">强度 α</div><div class="vl">0.70 / 0.80</div></div>
+  </div>
+
+  <div class="card" id="k2">
+    <div class="k">当前注入</div>
+    <div class="row"><div class="lb">人格</div><div class="vl pink">涩涩</div></div>
+    <div class="row"><div class="lb">强度 α</div><div class="vl">0.70 → 1.20</div></div>
+  </div>
+
+  <div class="card" id="k3">
+    <div class="k">扫描范围</div>
+    <div class="row"><div class="lb">层数</div><div class="vl blue">32 层</div></div>
+    <div class="row"><div class="lb">每层神经元</div><div class="vl blue">9216</div></div>
+  </div>
+
+  <div class="card" id="k4">
+    <div class="k">人格库</div>
+    <div class="row"><div class="lb">数量</div><div class="vl">7 个</div></div>
+    <div class="row"><div class="lb">单个人格</div><div class="vl">13 KB</div></div>
+  </div>
+
+  <div class="brand">TT_PERSONA</div>
+  <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const seg = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+const out = (x) => 1 - Math.pow(1 - x, 3);
+
+const CH = [
+  { ch:'c1', cd:'k1', a:0.2,  b:9.3  },
+  { ch:'c2', cd:'k2', a:9.3,  b:17.7 },
+  { ch:'c3', cd:'k3', a:17.7, b:22.4 },
+  { ch:'c4', cd:'k4', a:22.4, b:25.8 },
+];
+
+function setTime(t) {
+  CH.forEach((c) => {
+    const a = $(c.ch), b = $(c.cd);
+    const v = Math.min(seg(t, c.a, c.a + 0.45), 1 - seg(t, c.b - 0.35, c.b));
+    a.style.opacity = v;
+    a.style.transform = `translateY(${(1 - out(seg(t, c.a, c.a + 0.55))) * 22}px)`;
+    b.style.opacity = v;
+    b.style.transform = `translateY(${(1 - out(seg(t, c.a + 0.1, c.a + 0.6))) * 18}px)`;
+  });
+
+  const dots = $('dots').children;
+  const idx = t < 9.3 ? 0 : t < 17.7 ? 1 : t < 22.4 ? 2 : 3;
+  for (let i = 0; i < dots.length; i++) dots[i].className = i === idx ? 'on' : '';
+}
+
+window.setTime = setTime;
+window.TOTAL = 25.57;
+setTime(0);
+window.__ready = true;
+</script>
+</body>
+</html>

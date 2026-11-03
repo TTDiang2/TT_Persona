@@ -118,19 +118,28 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 
 [![TT_Persona 宣传片](docs/video/poster.jpg)](docs/video/tt-persona-promo.mp4)
 
-39 秒 · 1920×1080 · 1.7 MB，点封面播放。
+37 秒 · 1920×1080 · 1.2 MB，点封面播放。
 
 片头片尾和中间的原理段是代码画的（`app/promo/promo.html`，每一帧由 `setTime(t)` 决定，无头浏览器逐帧截图）；中间那段是**真实录屏**——CDP 驱动界面点人格、打字、发送、切视图、跑扫描，模型逐字流式输出的过程原样录下来，等待部分做了变速。
 
 录的内容依次是：同一个人问题换两个人格各答一次 → 对比页同一个人格的两个剂量（0.70 正常 / 1.20 崩坏）→ 定位页扫描 → 人格库。
 
 ```bash
-# 代码动画段
 cd app/promo
+
+# 1) 片头/原理/片尾（代码动画）
 node render.mjs "file:///D:/TT_Persona/app/promo/promo.html" frames 30
 
-# 真实录屏段（需要后端在 8791 跑着）
+# 2) 实机演示（需要后端在 8791 跑着）
 node capture.mjs http://127.0.0.1:8791 cap
+
+# 3) 解说层（透明 PNG 序列）
+node ovrender.mjs "file:///D:/TT_Persona/app/promo/overlay.html" ov
+
+# 4) 合成：录屏铺底 → 叠解说层 → 拼接四段
+ffmpeg -i cap/demo.mp4 -framerate 30 -i ov/o%05d.png -filter_complex \
+  "color=c=0xF7F6F3:s=1920x1080:r=30[bg];[bg][0:v]overlay=96:210:shortest=1[t];[t][1:v]overlay=0:0" \
+  -c:v libx264 -crf 20 cap/staged.mp4
 ```
 
 ---
