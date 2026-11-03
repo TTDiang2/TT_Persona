@@ -330,6 +330,33 @@ python neuron_steer.py scan --layers 12 16 18 22
 
 ---
 
+## 换一个模型
+
+改环境变量就行：
+
+```bash
+set TT_MODEL_ID=Qwen/Qwen3.6-35B-A3B
+# 或者指向本地目录
+set TT_MODEL_DIR=D:/AI/LLM/models/Qwen3.6-35B-A3B
+```
+
+两种模式对模型的要求不一样：
+
+| | 要求 | 适配范围 |
+|---|---|---|
+| **人格方向** | 能被 `from_pretrained` 加载、带 chat template | 绝大多数 decoder-only 模型 |
+| **单个神经元** | 每层有一个 dense `down_proj` | Llama、Qwen dense、Mistral 这类 |
+
+**MoE 模型请走方向模式。** 比如 Qwen3.6-35B-A3B：40 层、hidden 2048、256 个专家，前馈层里每个专家带自己的 `down_proj`，神经元编号要额外带上专家 id 才有意义。界面上会把「单个神经元」那一栏灰掉并给出说明，人格方向照常可用。
+
+**换模型后人格需要重建。** 向量维度和 hidden_size 绑定（Qwen3.5-4B 是 2560 维，Qwen3.6-35B-A3B 是 2048 维），维度对不上时加载会直接报错。去「人格库 → 重建全部」，它用各自的提示词 JSON 为当前模型重算一遍——**提示词通用，向量跟模型绑定**。
+
+**层号重新选。** 40 层的模型里，第 22 层和 32 层的模型里含义完全不同，建议重新扫一遍。
+
+显存估算：bf16 下约等于参数量 × 2 字节。35B 要 70 GB，4-bit 量化后约 18 GB。
+
+---
+
 ## 关于 GGUF
 
 手上有 GGUF 也能玩，粒度到**方向级**：

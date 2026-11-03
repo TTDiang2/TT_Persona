@@ -11,6 +11,8 @@ export type Status = {
   vram_total?: number
   tok_per_s?: number
   personas?: number
+  supports_neuron?: boolean
+  neuron_hint?: string
 }
 
 export type Persona = {
@@ -89,6 +91,11 @@ export const api = {
   deletePersona: (name: string) =>
     jfetch<{ ok: boolean }>(`/api/personas/${name}`, { method: "DELETE" }),
   exportUrl: () => "/api/personas-export",
+  rebuildPersonas: () =>
+    jfetch<{ ok: boolean; rebuilt: string[]; skipped: string[]; hidden: number }>(
+      "/api/personas/rebuild",
+      { method: "POST" },
+    ),
   importPersonas: (bundle: unknown) =>
     jfetch<{ ok: boolean; imported: number }>("/api/personas-import", {
       method: "POST",

@@ -129,6 +129,10 @@ export default function App() {
     }
   }, [active])
 
+  useEffect(() => {
+    if (status?.supports_neuron === false && mode === "neuron") setMode("trait")
+  }, [status?.supports_neuron, mode])
+
   const injection: Injection = useMemo(() => {
     if (mode === "neuron") {
       return specs.length ? { mode: "neuron", specs } : { mode: "none" }

@@ -32,6 +32,16 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
     }
   }
 
+  async function rebuild() {
+    try {
+      const r = await api.rebuildPersonas()
+      await ctx.refreshPersonas()
+      ctx.toast("重建完成", `${r.rebuilt.length} 个人格 · ${r.hidden} 维`)
+    } catch (e) {
+      ctx.toast("重建失败", String(e), "error")
+    }
+  }
+
   async function onImport(file: File) {
     try {
       const bundle = JSON.parse(await file.text())
@@ -65,6 +75,12 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
             className="rounded-lg border border-[#E3E0D9] bg-white px-3 py-1.5 text-[11px] text-[#57534E] hover:border-[#C9C4BA]"
           >
             导入
+          </button>
+          <button
+            onClick={rebuild}
+            className="rounded-lg border border-[#E3E0D9] bg-white px-3 py-1.5 text-[11px] text-[#57534E] hover:border-[#C9C4BA]"
+          >
+            重建全部
           </button>
           <a
             href={api.exportUrl()}

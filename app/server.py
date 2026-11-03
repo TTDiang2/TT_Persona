@@ -203,6 +203,35 @@ def delete_persona(name: str):
     return {"ok": True}
 
 
+@app.post("/api/personas/rebuild")
+def rebuild_personas():
+    """换模型后，用各自的提示词为当前模型重算全部人格向量"""
+    if engine.state != "ready":
+        raise HTTPException(409, f"模型尚未就绪（{engine.state}）")
+    meta = discover()
+    rebuilt, skipped = [], []
+    for name, m in meta.items():
+        p = pairs_path(name)
+        if not p.exists():
+            skipped.append(name)
+            continue
+        pairs = json.loads(p.read_text(encoding="utf-8"))
+        if not pairs.get("target"):
+            skipped.append(name)
+            continue
+        layer = int(m.get("layer", 18))
+        try:
+            vec = engine.build_trait(pairs, layer)
+        except Exception as e:
+            skipped.append(f"{name}({e})")
+            continue
+        torch.save({"vec": vec, "layer": layer, "name": name, "dim": vec.numel()},
+                   engine.vector_path(name))
+        rebuilt.append(name)
+    return {"ok": True, "rebuilt": rebuilt, "skipped": skipped,
+            "hidden": int(getattr(engine.cfg, "hidden_size", 0) or 0)}
+
+
 @app.get("/api/personas-export")
 def export_personas():
     """导出全部人格：元数据 + 提示词 + 向量（base64 float32）"""

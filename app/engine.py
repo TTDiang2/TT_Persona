@@ -31,6 +31,20 @@ def log(*a):
     print("[engine]", *a, flush=True)
 
 
+def _has_ffn(layer):
+    """这一层是否带前馈模块（dense 的 mlp，或者 MoE 的 moe / feed_forward）"""
+    return any(hasattr(layer, a) for a in ("mlp", "moe", "feed_forward"))
+
+
+def dense_mlp(layer):
+    """取出可做神经元干预的 dense MLP；MoE 层返回 None"""
+    for attr in ("mlp", "feed_forward"):
+        ff = getattr(layer, attr, None)
+        if ff is not None and hasattr(ff, "down_proj"):
+            return ff
+    return None
+
+
 class Engine:
     def __init__(self):
         self.tok = None
@@ -96,13 +110,23 @@ class Engine:
                 else:
                     ok = False
                     break
-            if ok and hasattr(obj, "__len__") and len(obj) and hasattr(obj[0], "mlp"):
+            if ok and hasattr(obj, "__len__") and len(obj) and _has_ffn(obj[0]):
                 return obj
         raise RuntimeError("找不到层列表")
 
     def require(self):
         if self.state != "ready":
             raise RuntimeError(f"模型未就绪（{self.state}）")
+
+    def supports_neuron(self):
+        """神经元模式需要每层都有一个 dense down_proj；MoE 模型给不了"""
+        if not self.layers:
+            return False, "模型尚未就绪"
+        if dense_mlp(self.layers[0]) is None:
+            n = getattr(self.cfg, "num_experts", None)
+            tag = f"（{n} 个专家）" if n else ""
+            return False, f"这个模型是 MoE 结构{tag}，专家层里没有统一的 down_proj。神经元模式请改用「人格方向」"
+        return True, ""
 
     # ------------------------------------------------------------ 状态
 
@@ -117,6 +141,9 @@ class Engine:
             "model": MODEL_ID.split("/")[-1],
             "device": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         }
+        ok, why = self.supports_neuron()
+        st["supports_neuron"] = ok
+        st["neuron_hint"] = why
         if torch.cuda.is_available():
             st["vram_used"] = round(torch.cuda.memory_allocated() / 2 ** 30, 2)
             st["vram_total"] = round(torch.cuda.get_device_properties(0).total_memory / 2 ** 30, 1)
@@ -167,7 +194,10 @@ class Engine:
                 L, j = int(spec["layer"]), int(spec["neuron"])
                 op = spec.get("op", "add")
                 dose = float(spec.get("dose", 1.0))
-                down = self.layers[L].mlp.down_proj
+                mlp = dense_mlp(self.layers[L])
+                if mlp is None:
+                    raise RuntimeError(self.supports_neuron()[1])
+                down = mlp.down_proj
                 if op == "zero":
                     def h(module, args, j=j):
                         x = args[0]
@@ -197,11 +227,22 @@ class Engine:
         if not p.exists():
             raise RuntimeError(f"人格 {name} 不存在")
         d = torch.load(p, map_location="cpu", weights_only=False)
+        hidden = int(getattr(self.cfg, "hidden_size", 0) or 0)
+        dim = int(d["vec"].numel())
+        if hidden and dim != hidden:
+            raise RuntimeError(
+                f"「{name}」是 {dim} 维向量，当前模型是 {hidden} 维。"
+                f"换模型后人格需要重建：人格库 → 重建全部")
         return d["vec"], int(d["layer"])
 
     @torch.no_grad()
     def build_trait(self, pairs, layer):
         self.require()
+        with self.lock:
+            return self._build_trait(pairs, layer)
+
+    @torch.no_grad()
+    def _build_trait(self, pairs, layer):
 
         def capture(texts):
             buf = []

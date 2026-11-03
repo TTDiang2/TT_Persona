@@ -4,6 +4,7 @@ import type { Ctx } from "@/App"
 
 export default function ParamPanel({ ctx }: { ctx: Ctx }) {
   const layers = Array.from({ length: ctx.status?.layers ?? 32 }, (_, i) => i)
+  const neuronOk = ctx.status?.supports_neuron !== false
 
   return (
     <aside className="flex w-[264px] shrink-0 flex-col gap-4 overflow-y-auto rounded-2xl border border-[#E3E0D9] bg-white p-4">
@@ -18,17 +19,26 @@ export default function ParamPanel({ ctx }: { ctx: Ctx }) {
         {(["trait", "neuron"] as const).map((m) => (
           <button
             key={m}
+            disabled={m === "neuron" && !neuronOk}
             onClick={() => ctx.setMode(m)}
             className={`rounded-md py-1.5 text-[12px] transition ${
-              ctx.mode === m
-                ? "bg-white text-[#1C1917] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                : "text-[#78716C] hover:text-[#44403C]"
+              m === "neuron" && !neuronOk
+                ? "cursor-not-allowed text-[#C4BFB6]"
+                : ctx.mode === m
+                  ? "bg-white text-[#1C1917] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                  : "text-[#78716C] hover:text-[#44403C]"
             }`}
           >
             {m === "trait" ? "人格方向" : "单个神经元"}
           </button>
         ))}
       </div>
+
+      {!neuronOk && (
+        <div className="rounded-xl bg-[#F7F5F1] p-3 text-[10.5px] leading-relaxed text-[#78716C]">
+          {ctx.status?.neuron_hint || "当前模型支持人格方向模式"}
+        </div>
+      )}
 
       {ctx.mode === "trait" ? (
         <>
