@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>TT_Persona promo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #F7F6F3; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+    color: #1C1917; -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+  .scene { position: absolute; inset: 0; opacity: 0; }
+
+  /* ---------- 1. 标题 ---------- */
+  #s1 { background: #1C1917; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; }
+  #s1 .mark { width: 128px; height: 128px; border-radius: 32px; background: #FAFAF9;
+              color: #1C1917; display: grid; place-items: center;
+              font-size: 54px; font-weight: 600; letter-spacing: -0.02em; }
+  #s1 h1 { margin-top: 52px; font-size: 172px; font-weight: 600; letter-spacing: -0.045em;
+           color: #FAFAF9; line-height: 1; }
+  #s1 .rule { height: 2px; background: #57534E; margin-top: 40px; }
+  #s1 p { margin-top: 44px; font-size: 40px; color: #A8A29E; letter-spacing: 0.08em; }
+
+  /* ---------- 2. 机制 ---------- */
+  #s2 { background: #F7F6F3; }
+  #s2 .label { position: absolute; left: 160px; top: 196px; }
+  #s2 .label .k { font-size: 26px; color: #A8A29E; letter-spacing: 0.16em; }
+  #s2 .label h2 { margin-top: 18px; font-size: 68px; font-weight: 500; letter-spacing: -0.02em; }
+  #s2 .label .sub { margin-top: 22px; font-size: 30px; color: #78716C; line-height: 1.6; }
+  #s2 .foot { position: absolute; left: 160px; bottom: 132px; font-size: 30px; color: #78716C; }
+  #s2 svg { position: absolute; inset: 0; }
+
+  /* ---------- 3-5. 截图 ---------- */
+  .shot { background: transparent; }
+  .shot .cap { position: absolute; left: 140px; top: 118px; }
+  .shot .cap .k { font-size: 24px; color: #A8A29E; letter-spacing: 0.16em; }
+  .shot .cap h2 { margin-top: 14px; font-size: 60px; font-weight: 500; letter-spacing: -0.02em; }
+  .shot .frame {
+    position: absolute; left: 140px; right: 140px; top: 300px; bottom: 96px;
+    border-radius: 22px; overflow: hidden; background: #fff;
+    box-shadow: 0 40px 90px -30px rgba(28,25,23,0.28), 0 2px 6px rgba(28,25,23,0.06);
+    border: 1px solid rgba(28,25,23,0.07);
+  }
+  .shot .frame img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+
+  /* ---------- 6. 收尾 ---------- */
+  #s6 { background: #1C1917; display: flex; align-items: center; }
+  #s6 .left { padding-left: 160px; }
+  #s6 .mark { width: 76px; height: 76px; border-radius: 20px; background: #FAFAF9; color: #1C1917;
+              display: grid; place-items: center; font-size: 32px; font-weight: 600; }
+  #s6 h2 { margin-top: 34px; font-size: 92px; font-weight: 600; letter-spacing: -0.035em; color: #FAFAF9; }
+  #s6 .facts { margin-top: 34px; display: flex; gap: 44px; }
+  #s6 .facts div { font-size: 26px; color: #A8A29E; }
+  #s6 .facts b { display: block; font-size: 40px; font-weight: 500; color: #FAFAF9; margin-bottom: 8px; }
+  #s6 .url { margin-top: 52px; font-size: 30px; color: #D4537E; letter-spacing: 0.01em; }
+  #s6 .app { position: absolute; right: 96px; top: 150px; width: 880px; border-radius: 16px;
+             overflow: hidden; box-shadow: 0 50px 110px -30px rgba(0,0,0,0.7);
+             border: 1px solid rgba(250,250,249,0.14); }
+  #s6 .app img { width: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1 -->
+  <section class="scene" id="s1">
+    <div class="mark" id="s1mark">TT</div>
+    <h1 id="s1title">TT_Persona</h1>
+    <div class="rule" id="s1rule"></div>
+    <p id="s1sub">给本地大模型换个性格</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="scene" id="s2">
+    <div class="label">
+      <div class="k" id="s2k">HOW IT WORKS</div>
+      <h2 id="s2h">推一个神经元</h2>
+      <div class="sub" id="s2sub">等价于往残差流里<br>加一根固定方向</div>
+    </div>
+
+    <svg viewBox="0 0 1920 1080">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#D4537E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <g id="streamA">
+        <line x1="200" y1="620" x2="1720" y2="620" stroke="#DCD8D0" stroke-width="2.5"/>
+      </g>
+      <g id="streamB">
+        <line x1="880" y1="620" x2="1720" y2="620" stroke="#D4537E" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <line id="arrow" x1="880" y1="840" x2="880" y2="672" stroke="#D4537E" stroke-width="4"
+            stroke-linecap="round" marker-end="url(#ah)"/>
+      <circle id="dot" cx="880" cy="620" r="13" fill="#1C1917"/>
+      <circle id="halo" cx="880" cy="620" r="13" fill="none" stroke="#D4537E" stroke-width="2"/>
+      <text id="tlab" x="910" y="900" font-size="26" fill="#A8A29E" font-family="Segoe UI, Microsoft YaHei UI">第 j 号神经元</text>
+      <text id="tres" x="200" y="700" font-size="24" fill="#B5B0A8" font-family="Segoe UI, Microsoft YaHei UI">残差流</text>
+      <text id="tres2" x="200" y="560" font-size="30" fill="#D4537E" font-family="Segoe UI, Microsoft YaHei UI" font-weight="500">+ Δ · down_proj[:, j]</text>
+    </svg>
+
+    <div class="foot" id="s2foot">参数留在文件里，偏置加在计算里</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="scene shot" id="s3">
+    <div class="cap">
+      <div class="k">LAB</div>
+      <h2>选一个人格，拖个旋钮</h2>
+    </div>
+    <div class="frame"><img id="im3" src="../../docs/screenshots/lab.png"></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="scene shot" id="s4">
+    <div class="cap">
+      <div class="k">COMPARE</div>
+      <h2>剂量过界，一眼看见</h2>
+    </div>
+    <div class="frame"><img id="im4" src="../../docs/screenshots/compare.png"></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="scene shot" id="s5">
+    <div class="cap">
+      <div class="k">LOCATE</div>
+      <h2>扫出是哪个神经元在管</h2>
+    </div>
+    <div class="frame"><img id="im5" src="../../docs/screenshots/locate.png"></div>
+  </section>
+
+  <!-- 6 -->
+  <section class="scene" id="s6">
+    <div class="left">
+      <div class="mark" id="s6mark">TT</div>
+      <h2 id="s6h">开源 · MIT</h2>
+      <div class="facts" id="s6facts">
+        <div><b>7</b>内置人格</div>
+        <div><b>13 KB</b>一个人格</div>
+        <div><b>1.6 MB</b>桌面安装包</div>
+      </div>
+      <div class="url" id="s6url">github.com/TTDiang2/TT_Persona</div>
+    </div>
+    <div class="app" id="s6app"><img src="../../docs/screenshots/desktop.png"></div>
+  </section>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const seg = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+const out = (x) => 1 - Math.pow(1 - x, 3);
+const inOut = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+
+function setScene(el, v) { el.style.opacity = v; }
+
+function setTime(t) {
+  /* ---- 1. 标题 0 - 3.0 ---- */
+  const s1 = $('s1');
+  const a1 = seg(t, 0.0, 0.9);
+  setScene(s1, Math.min(seg(t, 0, 0.6), 1 - seg(t, 2.55, 3.05)));
+  s1.style.transform = `scale(${1 + 0.03 * seg(t, 2.55, 3.05)})`;
+  $('s1mark').style.opacity = out(a1);
+  $('s1mark').style.transform = `translateY(${(1 - out(a1)) * 18}px) scale(${0.9 + 0.1 * out(a1)})`;
+  const a1b = seg(t, 0.25, 1.25);
+  $('s1title').style.opacity = out(a1b);
+  $('s1title').style.transform = `translateY(${(1 - out(a1b)) * 26}px)`;
+  const a1c = seg(t, 0.55, 1.5);
+  $('s1rule').style.width = `${out(a1c) * 460}px`;
+  $('s1rule').style.opacity = out(a1c);
+  const a1d = seg(t, 0.85, 1.75);
+  $('s1sub').style.opacity = out(a1d);
+  $('s1sub').style.transform = `translateY(${(1 - out(a1d)) * 16}px)`;
+
+  /* ---- 2. 机制 3.0 - 7.6 ---- */
+  const s2 = $('s2');
+  setScene(s2, Math.min(seg(t, 2.9, 3.5), 1 - seg(t, 7.15, 7.65)));
+  const a2 = seg(t, 3.0, 3.8);
+  $('s2k').style.opacity = out(a2);
+  $('s2h').style.opacity = out(seg(t, 3.1, 3.9));
+  $('s2h').style.transform = `translateY(${(1 - out(seg(t, 3.1, 3.9))) * 18}px)`;
+  $('s2sub').style.opacity = out(seg(t, 3.4, 4.2));
+  $('s2sub').style.transform = `translateY(${(1 - out(seg(t, 3.4, 4.2))) * 16}px)`;
+
+  // 残差流基线
+  const a2s = seg(t, 3.2, 4.1);
+  $('streamA').style.opacity = out(a2s);
+  $('streamA').setAttribute('transform', `translate(${(1 - out(a2s)) * -120}, 0)`);
+  $('tres').style.opacity = out(seg(t, 3.5, 4.2));
+
+  // 神经元点
+  const a2d = seg(t, 3.9, 4.4);
+  $('dot').style.opacity = out(a2d);
+  $('tlab').style.opacity = out(seg(t, 4.0, 4.6));
+  const pulse = t > 4.4 && t < 5.6 ? 1 + 0.35 * Math.sin((t - 4.4) * 12) : 1;
+  $('dot').setAttribute('r', 13 * (0.6 + 0.4 * out(a2d)) * pulse);
+  $('halo').style.opacity = t > 4.4 ? Math.max(0, 0.5 - seg(t, 4.4, 5.6) * 0.5) : 0;
+  $('halo').setAttribute('r', 13 + seg(t, 4.4, 5.6) * 46);
+
+  // 注入箭头
+  const a2a = seg(t, 4.5, 5.2);
+  $('arrow').style.opacity = a2a > 0 ? 1 : 0;
+  const dash = 200;
+  $('arrow').style.strokeDasharray = dash;
+  $('arrow').style.strokeDashoffset = dash * (1 - out(a2a));
+
+  // 右侧被推上去
+  const a2b = seg(t, 5.2, 6.1);
+  $('streamB').style.opacity = a2b > 0 ? 1 : 0;
+  $('streamB').setAttribute('transform', `translate(0, ${-34 * inOut(a2b)})`);
+  $('tres2').style.opacity = out(seg(t, 5.5, 6.2));
+  $('tres2').style.transform = `translateY(${34 * inOut(a2b)}px)`;
+
+  $('s2foot').style.opacity = out(seg(t, 6.0, 6.7));
+
+  /* ---- 3. lab 7.6 - 12.4 ---- */
+  shot(t, 's3', 'im3', 7.45, 12.30);
+  /* ---- 4. compare 12.4 - 17.2 ---- */
+  shot(t, 's4', 'im4', 12.30, 17.05);
+  /* ---- 5. locate 17.2 - 21.9 ---- */
+  shot(t, 's5', 'im5', 17.05, 21.75);
+
+  /* ---- 6. 收尾 21.9 - 26.4 ---- */
+  const s6 = $('s6');
+  setScene(s6, Math.min(seg(t, 21.65, 22.1), 1));
+  const a6 = seg(t, 21.9, 22.8);
+  $('s6mark').style.opacity = out(a6);
+  $('s6mark').style.transform = `scale(${0.88 + 0.12 * out(a6)})`;
+  $('s6h').style.opacity = out(seg(t, 22.2, 23.0));
+  $('s6h').style.transform = `translateY(${(1 - out(seg(t, 22.2, 23.0))) * 20}px)`;
+  $('s6facts').style.opacity = out(seg(t, 22.6, 23.4));
+  $('s6facts').style.transform = `translateY(${(1 - out(seg(t, 22.6, 23.4))) * 18}px)`;
+  $('s6url').style.opacity = out(seg(t, 23.0, 23.8));
+  $('s6app').style.opacity = out(seg(t, 22.4, 23.4));
+  $('s6app').style.transform = `translateX(${(1 - out(seg(t, 22.4, 23.4))) * 60}px)`;
+}
+
+function shot(t, sid, iid, t0, t1) {
+  const el = $(sid);
+  const v = Math.min(seg(t, t0 - 0.04, t0 + 0.04), 1 - seg(t, t1 - 0.04, t1 + 0.04));
+  el.style.opacity = v;
+  const p = seg(t, t0, t1);
+  const cap = $(sid).querySelector('.cap');
+  const ca = out(seg(t, t0 - 0.55, t0 - 0.05));
+  cap.style.opacity = ca;
+  cap.style.transform = `translateY(${(1 - ca) * 22}px)`;
+  const img = $(iid);
+  img.style.transform = `scale(${1.055 - 0.055 * out(seg(t, t0, t1))})`;
+  const fr = el.querySelector('.frame');
+  const fa = out(seg(t, t0 - 0.5, t0));
+  fr.style.opacity = fa;
+  fr.style.transform = `translateY(${(1 - fa) * 40}px)`;
+}
+
+window.setTime = setTime;
+window.TOTAL = 26.4;
+setTime(0);
+window.__ready = true;
+</script>
+</body>
+</html>

@@ -114,6 +114,22 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 
 ---
 
+## 宣传片
+
+[![TT_Persona 宣传片](docs/video/poster.jpg)](docs/video/tt-persona-promo.mp4)
+
+26 秒 · 1920×1080 · 7 MB，点封面播放。
+
+片子是代码画出来的：`app/promo/promo.html` 里每一帧由 `setTime(t)` 决定，无头浏览器逐帧截图，ffmpeg 合成。想改文案或配色直接编辑那个 HTML。
+
+```bash
+cd app/promo
+node render.mjs "file:///D:/TT_Persona/app/promo/promo.html" frames 30
+ffmpeg -framerate 30 -i frames/f%05d.jpg -c:v libx264 -crf 18 -pix_fmt yuv420p ../../docs/video/tt-persona-promo.mp4
+```
+
+---
+
 ## 桌面版（Tauri）
 
 ![桌面版](docs/screenshots/desktop.png)
@@ -369,6 +385,8 @@ TT_Persona/
 ├── pairs.json               默认对比提示词
 ├── traits/                  人格向量（.pt）+ 提示词（.json）
 ├── docs/screenshots/        宣传截图
+├── docs/video/              宣传片（mp4 + 封面）
+├── app/promo/               宣传片源码（HTML 动画 + 逐帧渲染脚本）
 └── app/                     网页版
     ├── start.bat / start.sh 启动脚本
     ├── server.py            后端 API
