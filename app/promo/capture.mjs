@@ -64,6 +64,26 @@ const dismiss = async () => {
   await js("document.body.click()")
 }
 
+const setSelect = (i, value) =>
+  js(`(()=>{
+    const el=document.querySelectorAll('select')[${i}];
+    if(!el) return false;
+    const set=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;
+    set.call(el, ${JSON.stringify(value)});
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  })()`)
+
+const setRange = (i, value) =>
+  js(`(()=>{
+    const el=document.querySelectorAll('input[type=range]')[${i}];
+    if(!el) return false;
+    const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
+    set.call(el, String(${Number(value)}));
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    return true;
+  })()`)
+
 async function type(text, delay = 34) {
   for (const ch of text) {
     await js(`(()=>{
@@ -108,40 +128,73 @@ for (let i = 0; i < 150; i++) {
 }
 await sleep(800)
 
+const marks = []
+let recT0 = 0
+const mark = (label) => marks.push({ label, t: (Date.now() - recT0) / 1000 })
+
 // ---------- 开录 ----------
 await send("Page.startScreencast", {
   format: "jpeg", quality: 88, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1,
 })
+recT0 = Date.now()
 console.log("recording...")
+await sleep(400)
+mark("start")
 
-// 1) 选人格 + 输入 + 发送，看真实流式输出
+// ---- 1) 实验台：同一个人问题，两个人格 ----
 await clickText("涩涩", "aside")
-await sleep(500)
-await dismiss()
-await sleep(500)
+await sleep(400); await dismiss(); await sleep(300)
+await setRange(1, 120)              // 最大长度调短，回复更利落
+await sleep(300)
 await type("我明天要去新公司报到，有点紧张，给我点建议。")
-await sleep(500)
+await sleep(400)
 await clickText("发送")
-await waitStable(3000, 1800)
-await sleep(1000)
+mark("send-1")
+await waitStable(2500, 1500)
+mark("done-1")
+await sleep(900)
 
-// 2) 对比视图，三栏依次流式
+await clickText("清空会话")
+await sleep(500)
+await clickText("evil", "aside")
+await sleep(400); await dismiss(); await sleep(300)
+await type("我明天要去新公司报到，有点紧张，给我点建议。")
+await sleep(400)
+await clickText("发送")
+mark("send-2")
+await waitStable(2500, 1500)
+mark("done-2")
+await sleep(900)
+
+// ---- 2) 对比：同一个人格，两个剂量 ----
 await clickText("对比")
-await sleep(900)
-await dismiss()
-await dismiss()
+await sleep(900); await dismiss(); await sleep(300)
+await setSelect(0, "flirty"); await setRange(0, 0.7)
+await setSelect(1, "flirty"); await setRange(1, 1.2)
+await sleep(600)
+mark("compare-ready")
 await clickText("并排运行")
-await waitStable(3500, 2200)
+mark("compare-run")
+await waitStable(3500, 2500)
+mark("compare-done")
 await sleep(1000)
 
-// 3) 定位视图，扫描
+// ---- 3) 定位：扫描后多停一会儿 ----
 await clickText("定位")
-await sleep(900)
-await dismiss()
-await dismiss()
+await sleep(900); await dismiss(); await sleep(300)
 await clickText("开始扫描")
-await waitStable(3500, 2200)
-await sleep(1500)
+mark("scan-run")
+await waitStable(3500, 2500)
+mark("scan-done")
+await sleep(2600)
+mark("scan-hold")
+
+// ---- 4) 人格库 ----
+await clickText("人格库")
+await sleep(900); await dismiss()
+mark("library")
+await sleep(3200)
+mark("end")
 
 await send("Page.stopScreencast")
 await sleep(300)
@@ -160,5 +213,7 @@ for (const f of frames) {
 }
 const dur = frames[frames.length - 1].ts - t0
 fs.writeFileSync(path.join(outDir, "index.json"), JSON.stringify(index))
+fs.writeFileSync(path.join(outDir, "marks.json"), JSON.stringify(marks, null, 2))
+console.log("marks:", marks.map(m => `${m.label}@${m.t.toFixed(1)}`).join("  "))
 console.log(`captured ${n} frames over ${dur.toFixed(1)}s (${(n / dur).toFixed(1)} fps)`)
 ws.close()
