@@ -304,6 +304,23 @@ def scan(body: ScanIn):
         raise HTTPException(409, str(e))
 
 
+class CausalIn(BaseModel):
+    layer: int
+    prompt: str = "介绍一下你自己。"
+    dose: float = 1.0
+    sample: int = 300
+    topk: int = 12
+
+
+@app.post("/api/scan-causal")
+def scan_causal(body: CausalIn):
+    try:
+        return engine.scan_causal(body.layer, body.prompt, body.dose,
+                                  body.sample, body.topk)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+
+
 @app.post("/api/neuron/inspect")
 def inspect(body: InspectIn):
     try:

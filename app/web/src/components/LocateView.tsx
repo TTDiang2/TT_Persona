@@ -32,6 +32,10 @@ export default function LocateView({ ctx }: { ctx: Ctx }) {
   const [layerFilter, setLayerFilter] = useState<number | null>(null)
   const [selected, setSelected] = useState<ScanRow | null>(null)
   const [detail, setDetail] = useState<{ rows: { text: string; group: string; act: number }[]; col_norm: number } | null>(null)
+  const [cLayer, setCLayer] = useState(18)
+  const [cSample, setCSample] = useState(200)
+  const [causal, setCausal] = useState<{ neuron: number; kl: number }[] | null>(null)
+  const [cBusy, setCBusy] = useState(false)
 
   const totalLayers = ctx.status?.layers ?? 32
 
@@ -58,6 +62,20 @@ export default function LocateView({ ctx }: { ctx: Ctx }) {
       ctx.toast("扫描失败", String(e), "error")
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function runCausal() {
+    setCBusy(true)
+    setCausal(null)
+    try {
+      const r = await api.scanCausal({ layer: cLayer, sample: cSample, dose: 1, topk: 30 })
+      setCausal(r.results)
+      ctx.toast("因果扫描完成", `L${r.layer} 抽样 ${r.sample}/${r.scanned}`)
+    } catch (e) {
+      ctx.toast("扫描失败", String(e), "error")
+    } finally {
+      setCBusy(false)
     }
   }
 
@@ -157,14 +175,46 @@ export default function LocateView({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
 
-        <div className="border-t border-[#F0EEE9] p-3">
+        <div className="space-y-2 border-t border-[#F0EEE9] p-3">
           <button
             onClick={run}
             disabled={busy}
             className="w-full rounded-lg bg-[#1C1917] py-2 text-[12px] text-white transition disabled:bg-[#D6D2CB]"
           >
-            {busy ? "扫描中…" : "开始扫描"}
+            {busy ? "扫描中…" : "相关性扫描"}
           </button>
+
+          <div className="rounded-lg bg-[#F7F5F1] p-2.5">
+            <div className="mb-1.5 flex items-center justify-between text-[10px] text-[#A8A29E]">
+              <span>因果扫描（推一下看效果）</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                value={cLayer}
+                onChange={(e) => setCLayer(Number(e.target.value))}
+                className="w-12 rounded-md border border-[#E3E0D9] px-1 py-1 text-[11px]"
+                title="层"
+              />
+              <input
+                type="number"
+                value={cSample}
+                onChange={(e) => setCSample(Number(e.target.value))}
+                className="w-16 rounded-md border border-[#E3E0D9] px-1 py-1 text-[11px]"
+                title="抽样数"
+              />
+              <button
+                onClick={runCausal}
+                disabled={cBusy}
+                className="flex-1 rounded-md bg-[#185FA5] py-1 text-[11px] text-white disabled:bg-[#B5D4F4]"
+              >
+                {cBusy ? "跑…" : "开始"}
+              </button>
+            </div>
+            <div className="mt-1 text-[9.5px] leading-relaxed text-[#B5B0A8]">
+              每个神经元一次前向，200 个约 12 秒
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -227,7 +277,17 @@ export default function LocateView({ ctx }: { ctx: Ctx }) {
         <div className="flex min-h-0 flex-1 gap-4">
           <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[#E3E0D9] bg-white">
             <div className="flex items-center gap-2 border-b border-[#F0EEE9] px-4 py-2.5">
-              <span className="text-[12px] font-medium">候选神经元</span>
+              <span className="text-[12px] font-medium">
+                {causal ? "因果扫描结果" : "候选神经元"}
+              </span>
+              {causal && (
+                <button
+                  onClick={() => setCausal(null)}
+                  className="rounded-full bg-[#F5F3EF] px-2 py-0.5 text-[10px] text-[#57534E]"
+                >
+                  返回相关性
+                </button>
+              )}
               {layerFilter != null && (
                 <button
                   onClick={() => setLayerFilter(null)}
@@ -238,7 +298,42 @@ export default function LocateView({ ctx }: { ctx: Ctx }) {
               )}
               <span className="ml-auto text-[10px] text-[#B5B0A8]">{rows.length} 条</span>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            {causal && (
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <table className="w-full table-fixed text-[11px]">
+                  <thead className="sticky top-0 bg-white text-[#A8A29E]">
+                    <tr>
+                      <th className="w-12 py-2 pl-4 text-left font-normal">层</th>
+                      <th className="w-[68px] py-2 text-left font-normal">神经元</th>
+                      <th className="py-2 text-left font-normal">KL 变化</th>
+                      <th className="w-12 py-2 pr-4 text-right font-normal">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {causal.map((r) => (
+                      <tr key={r.neuron} className="border-t border-[#F7F5F1] hover:bg-[#FAF8F5]">
+                        <td className="py-1.5 pl-4 tabular-nums text-[#78716C]">{cLayer}</td>
+                        <td className="py-1.5 tabular-nums">{r.neuron}</td>
+                        <td className="py-1.5 tabular-nums text-[#44403C]">{r.kl.toFixed(2)}</td>
+                        <td className="py-1.5 pr-4 text-right">
+                          <button
+                            onClick={() => {
+                              ctx.addSpec({ layer: cLayer, neuron: r.neuron, dose: 1 })
+                              ctx.toast("已加入注入", `L${cLayer} N${r.neuron} → 实验台`)
+                            }}
+                            className="rounded border border-[#E3E0D9] px-1.5 py-0.5 text-[10px] text-[#57534E] hover:border-[#A8A29E]"
+                          >
+                            推
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 overflow-y-auto" style={{ display: causal ? "none" : "block" }}>
               <table className="w-full table-fixed text-[11px]">
                 <thead className="sticky top-0 bg-white text-[#A8A29E]">
                   <tr>

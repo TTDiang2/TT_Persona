@@ -113,7 +113,8 @@ Engine.residual_norm(L)     # 该层残差流中位范数，α 的分母
 Engine.build_trait(pairs, layer)  # 对比均值差 → 单位向量
 
 # 扫描与生成
-Engine.scan(pairs, layers)  # 一次前向抓所有层
+Engine.scan(pairs, layers)  # 相关性：一次前向抓所有层，算激活差
+Engine.scan_causal(layer, prompt, sample)  # 因果：逐个推神经元，算下一 token 的 KL
 Engine.stream(messages, injection, ...)  # TextIteratorStreamer + 线程
 ```
 

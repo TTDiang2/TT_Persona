@@ -418,6 +418,48 @@ class Engine:
                     "layers": layers, "bins": bins}
 
     @torch.no_grad()
+    def scan_causal(self, layer, prompt, dose=1.0, sample=300, topk=12):
+        """因果扫描：逐个推动神经元，看下一 token 分布被改了多少（KL）。
+
+        相关性（激活差）找不出东西时，这个能。代价是每个神经元一次前向。
+        """
+        self.require()
+        with self.lock:
+            enc = self.tok(prompt, return_tensors="pt", truncation=True,
+                           max_length=256).to(self.device)
+            base_logp = torch.log_softmax(
+                self.model(**enc).logits[0, -1, :].float(), -1)
+            base_p = base_logp.exp()
+
+            down = self.layers[layer].mlp.down_proj
+            n = down.weight.shape[1]
+            k = min(sample, n)
+            idxs = torch.randperm(n)[:k].tolist()
+            scale = self.residual_norm(layer)
+            rows = []
+
+            for j in idxs:
+                col = down.weight[:, j].detach().float()
+                delta = dose * scale / float(col.norm())
+
+                def h(module, args, delta=delta, j=j):
+                    x = args[0]
+                    x[..., j] = x[..., j] + delta
+                    return args
+
+                handle = down.register_forward_pre_hook(h)
+                try:
+                    lg = torch.log_softmax(
+                        self.model(**enc).logits[0, -1, :].float(), -1)
+                finally:
+                    handle.remove()
+                kl = float((base_p * (base_logp - lg)).sum())
+                rows.append({"neuron": j, "kl": round(kl, 5)})
+
+            rows.sort(key=lambda r: -r["kl"])
+            return {"layer": layer, "sample": k, "scanned": n, "results": rows[:topk]}
+
+    @torch.no_grad()
     def inspect_neuron(self, layer, neuron, pairs):
         """这个神经元在哪些提示词上最活跃 —— 判断它到底在管什么"""
         self.require()

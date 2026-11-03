@@ -110,6 +110,13 @@ export const api = {
     }),
   scan: (body: unknown) =>
     jfetch<ScanResult>("/api/scan", { method: "POST", headers: J, body: JSON.stringify(body) }),
+  scanCausal: (body: unknown) =>
+    jfetch<{
+      layer: number
+      sample: number
+      scanned: number
+      results: { neuron: number; kl: number }[]
+    }>("/api/scan-causal", { method: "POST", headers: J, body: JSON.stringify(body) }),
   inspect: (body: unknown) =>
     jfetch<{
       layer: number
