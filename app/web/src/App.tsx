@@ -3,12 +3,13 @@ import type { Dispatch, SetStateAction } from "react"
 import { PillNavigation } from "@/components/ui/pill-navigation"
 import { VelocityToast } from "@/components/ui/velocity-toast"
 import { ThinkingOrb } from "@/components/ui/thinking-orb"
+import TitleBar from "@/components/TitleBar"
 import LabView from "@/components/LabView"
 import CompareView from "@/components/CompareView"
 import LibraryView from "@/components/LibraryView"
 import LocateView from "@/components/LocateView"
 import type { Injection, Msg, NeuronSpec, Persona, Status } from "@/lib/api"
-import { api } from "@/lib/api"
+import { api, IS_TAURI } from "@/lib/api"
 
 export type Ctx = {
   status: Status | null
@@ -176,13 +177,16 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col bg-[#F7F6F3] text-[#1C1917]">
-      <header className="flex items-center gap-4 px-6 pt-5 pb-4">
+      <TitleBar />
+      <header className={`flex items-center gap-4 px-6 pb-4 ${IS_TAURI ? "pt-2" : "pt-5"}`}>
         <div className="flex items-center gap-2.5">
-          <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#1C1917] text-[13px] font-medium text-white">
-            TT
-          </div>
+          {!IS_TAURI && (
+            <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#1C1917] text-[13px] font-medium text-white">
+              TT
+            </div>
+          )}
           <div className="leading-tight">
-            <div className="text-[14px] font-medium">TT_Persona</div>
+            {!IS_TAURI && <div className="text-[14px] font-medium">TT_Persona</div>}
             <div className="text-[11px] text-[#8A8781]">
               {status ? `${status.model} · ${status.layers} 层` : "正在连接后端…"}
             </div>

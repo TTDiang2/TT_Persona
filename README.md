@@ -97,6 +97,36 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 
 ---
 
+## 桌面版（Tauri）
+
+![桌面版](docs/screenshots/desktop.png)
+
+同一个界面，装成原生窗口：自绘标题栏、无边框、启动时自动拉起后端。
+
+安装包 **1.6 MB**——里面是外壳和前端页面，模型和 Python 环境留在本地。8 GB 的权重进不了安装包。
+
+**首次启动**会在 `%APPDATA%\TT_Persona\backend.json` 生成一份配置，按自己的路径改：
+
+```json
+{
+  "python": "D:////AI////LLM////venv////Scripts////python.exe",
+  "server": "D:////TT_Persona////app////server.py"
+}
+```
+
+改完重开即可。后端已经在跑的时候，桌面版直接连上去，不会重复启动。
+
+自己打包：
+
+```bash
+cd app/desktop
+npm install
+npx tauri build
+# 产物：src-tauri/target/release/bundle/nsis/TT_Persona_0.1.0_x64-setup.exe
+```
+
+---
+
 ## 四个页面
 
 | 页面 | 干嘛的 | 什么时候用 |
@@ -326,6 +356,7 @@ TT_Persona/
     ├── verify.py            端到端自检（五项）
     ├── engine.py            模型加载 / 注入 / 扫描
     ├── data/personas.json   人格元数据
+    ├── desktop/             Tauri 桌面外壳（自绘标题栏）
     └── web/                 前端（Vite + React + Tailwind + shadcn）
         └── src/components/  LabView / CompareView / LocateView / LibraryView
 ```

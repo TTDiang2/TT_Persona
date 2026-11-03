@@ -21,6 +21,11 @@ app/shots/
 *.bin
 *.ninfer
 
+# Tauri
+app/desktop/target/
+app/desktop/src-tauri/gen/
+app/desktop/src-tauri/target/
+
 # 系统
 .DS_Store
 Thumbs.db

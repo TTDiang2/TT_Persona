@@ -65,8 +65,13 @@ export type ScanResult = {
 
 const J = { "Content-Type": "application/json" }
 
+/** 跑在 Tauri 里时页面来自 tauri://，接口要指向本地后端 */
+export const IS_TAURI =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
+export const API_BASE = IS_TAURI ? "http://127.0.0.1:8791" : ""
+
 async function jfetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init)
+  const res = await fetch(API_BASE + url, init)
   if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`)
   return res.json() as Promise<T>
 }
@@ -90,7 +95,7 @@ export const api = {
     }),
   deletePersona: (name: string) =>
     jfetch<{ ok: boolean }>(`/api/personas/${name}`, { method: "DELETE" }),
-  exportUrl: () => "/api/personas-export",
+  exportUrl: () => API_BASE + "/api/personas-export",
   rebuildPersonas: () =>
     jfetch<{ ok: boolean; rebuilt: string[]; skipped: string[]; hidden: number }>(
       "/api/personas/rebuild",
@@ -130,7 +135,7 @@ export async function streamChat(
   onEvent: (e: StreamEvent) => void,
   signal?: AbortSignal,
 ) {
-  const res = await fetch("/api/chat", {
+  const res = await fetch(API_BASE + "/api/chat", {
     method: "POST",
     headers: J,
     body: JSON.stringify(body),

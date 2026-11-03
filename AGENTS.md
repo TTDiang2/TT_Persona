@@ -59,6 +59,8 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 | `traits/*.pt` | 人格向量（`{vec, layer, name, dim}`） | 换模型后重建 |
 | `traits/*.json` | 对比提示词（`{target[], neutral[]}`），**与模型无关** | 加人格 |
 | `neuron_steer.py` | 命令行版，同一套机制的脚本入口 | 加 CLI 子命令 |
+| `app/desktop/` | Tauri 外壳：自绘标题栏、启动时探测并拉起后端 | 改窗口行为 |
+| `app/web/src/components/TitleBar.tsx` | 自绘标题栏，`IS_TAURI` 为真时渲染 | 改窗口控件 |
 
 ---
 
@@ -70,6 +72,7 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 - 架构特点：混合线性注意力（每 4 层一个 full attention）+ 多模态；层路径是 `model.language_model.layers`
 - 前端：Vite + React 19 + Tailwind v4 + shadcn（radix 基座）
 - 端口：后端 **8791**（同时托管 `web/dist`），前端 dev **5273**（`/api` 代理到 8791）
+- 桌面版：Tauri 2 + Rust 1.77+，`decorations: false` 配自绘标题栏；页面来自 `tauri://`，接口走 `http://127.0.0.1:8791`（见 `lib/api.ts` 的 `API_BASE`）
 
 ---
 
@@ -167,7 +170,18 @@ curl -X POST http://127.0.0.1:8791/api/personas -H "Content-Type: application/js
 
 `app/server.py` 里加函数 → `app/web/src/lib/api.ts` 里加方法 → `app/verify.py` 里加一项检查。
 
-### 6.5 改前端视图
+### 6.5 打包桌面版
+
+```bash
+cd app/desktop && npm install && npx tauri build
+# 产物：src-tauri/target/release/bundle/nsis/TT_Persona_<ver>_x64-setup.exe
+```
+
+改完前端要先 `cd app/web && npm run build`，Tauri 的 `frontendDist` 指向 `web/dist`。
+
+后端路径由 `%APPDATA%\TT_Persona\backend.json` 决定，首次运行自动生成。窗口用 `decorations: false`，标题栏是 `TitleBar.tsx` 画的，窗口控制依赖 `capabilities/default.json` 里那几个 `core:window:allow-*` 权限。
+
+### 6.6 改前端视图
 
 视图组件在 `components/`，共享状态走 `App.tsx` 的 `Ctx`。加视图要同时改三处：`NAV` 常量、`View` 类型、`App` 里的条件渲染。
 
