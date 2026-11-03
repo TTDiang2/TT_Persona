@@ -21,7 +21,12 @@ const DEFAULT_NEUTRAL = `用平静客观的语气回答：介绍一下你自己�
 用礼貌的语气说：请帮我推荐一本书。
 你关心面前这个人，用温和的话回答：晚安。`
 
-const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean)
+const lines = (s: string) => {
+  // 有空的整行 → 按空行分组（少样本那种多行一条的写法）
+  // 全是紧凑的行 → 按行分组（每行一条的写法）
+  const parts = /\n\s*\n/.test(s) ? s.split(/\n\s*\n/) : s.split("\n")
+  return parts.map((x) => x.trim()).filter(Boolean)
+}
 
 export default function LocateView({ ctx }: { ctx: Ctx }) {
   const [target, setTarget] = useState(DEFAULT_TARGET)

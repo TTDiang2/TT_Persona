@@ -290,7 +290,12 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
   const [probing, setProbing] = useState(false)
   const [probe, setProbe] = useState<{ layer: number; text: string; seconds: number }[] | null>(null)
 
-  const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean)
+  const lines = (s: string) => {
+  // 有空的整行 → 按空行分组（少样本那种多行一条的写法）
+  // 全是紧凑的行 → 按行分组（每行一条的写法）
+  const parts = /\n\s*\n/.test(s) ? s.split(/\n\s*\n/) : s.split("\n")
+  return parts.map((x) => x.trim()).filter(Boolean)
+}
 
   async function runProbe() {
     const t = lines(target)
@@ -408,7 +413,7 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               rows={8}
-              placeholder={"用阴阳怪气的语气回答：介绍一下你自己。\n用嘲讽的口吻说：今天天气怎么样？"}
+              placeholder={"多条之间空一行：\n\n问：今天天气怎么样？\n答：（凑近耳边）呀～外面有点凉呢\n问：介绍一下你自己。\n答：\n\n问：几点了？\n答：（歪头笑）还早呢～"}
               className="w-full resize-none rounded-lg border border-[#E3E0D9] px-2.5 py-2 text-[11px] leading-relaxed outline-none [field-sizing:content] focus:border-[#A8A29E]"
             />
           </Field>
@@ -417,7 +422,7 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
               value={neutral}
               onChange={(e) => setNeutral(e.target.value)}
               rows={8}
-              placeholder={"用平静客观的语气回答：介绍一下你自己。\n用平常的语气说：今天天气怎么样？"}
+              placeholder={"多条之间空一行：\n\n问：今天天气怎么样？\n答：今天 18 度，多云。\n问：介绍一下你自己。\n答：\n\n问：几点了？\n答：现在是下午三点。"}
               className="w-full resize-none rounded-lg border border-[#E3E0D9] px-2.5 py-2 text-[11px] leading-relaxed outline-none [field-sizing:content] focus:border-[#A8A29E]"
             />
           </Field>
@@ -453,6 +458,10 @@ function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose
             </div>
           </div>
         )}
+
+        <div className="mt-2 text-[10px] leading-relaxed text-[#B5B0A8]">
+          每条之间空一行。单行指令（“用 X 的语气回答：…”）可以直接换行；少样本那种多行示范，一定要用空行隔开。
+        </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <span className="mr-auto text-[10px] tabular-nums text-[#B5B0A8]">
