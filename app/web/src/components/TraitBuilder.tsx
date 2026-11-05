@@ -90,13 +90,31 @@ const SAMPLES = {
 
 type SampleKey = keyof typeof SAMPLES
 
-const PROBE_LAYERS = [14, 18, 22, 26]
+const DEFAULT_LAYERS = "14, 18, 22, 26"
 
 const lines = (s: string) => {
   // 有空行 → 按空行分组（少样本那种一条占多行的写法）
   // 没空行 → 按行分组（单行指令的写法）
   const parts = /\n\s*\n/.test(s) ? s.split(/\n\s*\n/) : s.split("\n")
   return parts.map((x) => x.trim()).filter(Boolean)
+}
+
+/** "14, 18, 22-26" → [14,18,22,23,24,25,26]，去重、排序、过滤越界 */
+const parseLayers = (s: string, max: number) => {
+  const out = new Set<number>()
+  for (const part of s.split(/[,，\s]+/).filter(Boolean)) {
+    const m = part.match(/^(\d+)\s*[-~]\s*(\d+)$/)
+    if (m) {
+      const [a, b] = [Number(m[1]), Number(m[2])]
+      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) {
+        if (i >= 0 && i < max) out.add(i)
+      }
+    } else {
+      const v = Number(part)
+      if (Number.isInteger(v) && v >= 0 && v < max) out.add(v)
+    }
+  }
+  return [...out].sort((a, b) => a - b)
 }
 
 export default function TraitBuilder({ ctx }: { ctx: Ctx }) {
@@ -107,6 +125,7 @@ export default function TraitBuilder({ ctx }: { ctx: Ctx }) {
   const [probing, setProbing] = useState(false)
   const [probe, setProbe] = useState<{ layer: number; text: string; seconds: number }[] | null>(null)
   const [picked, setPicked] = useState<number | null>(null)
+  const [layerInput, setLayerInput] = useState(DEFAULT_LAYERS)
 
   const [name, setName] = useState("")
   const [label, setLabel] = useState("")
@@ -119,6 +138,12 @@ export default function TraitBuilder({ ctx }: { ctx: Ctx }) {
   const t = useMemo(() => lines(target), [target])
   const n = useMemo(() => lines(neutral), [neutral])
   const matched = t.length > 0 && t.length === n.length
+
+  const totalLayers = ctx.status?.layers ?? 32
+  const probeLayers = useMemo(
+    () => parseLayers(layerInput, totalLayers),
+    [layerInput, totalLayers],
+  )
 
   function loadSample(k: SampleKey) {
     setSample(k)
@@ -134,11 +159,15 @@ export default function TraitBuilder({ ctx }: { ctx: Ctx }) {
       ctx.toast("提示词不匹配", `现在 ${t.length} 正 / ${n.length} 负，两边要一样多`, "error")
       return
     }
+    if (!probeLayers.length) {
+      ctx.toast("层号无效", `填 0~${totalLayers - 1} 之间的数字，逗号分隔`, "error")
+      return
+    }
     setProbing(true)
     setProbe(null)
     setPicked(null)
     try {
-      const r = await api.probeLayers({ target: t, neutral: n, layers: PROBE_LAYERS, alpha })
+      const r = await api.probeLayers({ target: t, neutral: n, layers: probeLayers, alpha })
       setProbe(r.results)
     } catch (e) {
       ctx.toast("试层失败", String(e), "error")
@@ -243,13 +272,46 @@ export default function TraitBuilder({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
 
-        <div className="border-t border-[#F0EEE9] p-3">
+        <div className="space-y-2 border-t border-[#F0EEE9] p-3">
+          <div>
+            <div className="mb-1 flex items-center justify-between text-[10px]">
+              <span className="text-[#78716C]">试哪些层</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setLayerInput(DEFAULT_LAYERS)}
+                  className="rounded px-1.5 py-0.5 text-[9.5px] text-[#A8A29E] hover:bg-[#F5F3EF] hover:text-[#57534E]"
+                >
+                  常用
+                </button>
+                <button
+                  onClick={() => setLayerInput(`0-${totalLayers - 1}`)}
+                  className="rounded px-1.5 py-0.5 text-[9.5px] text-[#A8A29E] hover:bg-[#F5F3EF] hover:text-[#57534E]"
+                >
+                  全部
+                </button>
+              </div>
+            </div>
+            <input
+              value={layerInput}
+              onChange={(e) => setLayerInput(e.target.value)}
+              placeholder="14, 18, 22-26"
+              className="w-full rounded-lg border border-[#E3E0D9] px-2.5 py-1.5 text-[11px] tabular-nums outline-none focus:border-[#A8A29E]"
+            />
+            <div className="mt-1 flex items-center justify-between text-[9px] text-[#B5B0A8]">
+              <span>逗号分隔，支持 18-24</span>
+              <span className={probeLayers.length ? "" : "text-[#E24B4A]"}>
+                {probeLayers.length
+                  ? `${probeLayers.length} 层 · 约 ${Math.round(probeLayers.length * 2.2)} 秒`
+                  : "层号无效"}
+              </span>
+            </div>
+          </div>
           <button
             onClick={runProbe}
-            disabled={probing || !matched}
+            disabled={probing || !matched || !probeLayers.length}
             className="w-full rounded-lg bg-[#1C1917] py-2 text-[12px] text-white transition disabled:bg-[#D6D2CB]"
           >
-            {probing ? "正在逐层试…" : `试层（${PROBE_LAYERS.join(" / ")}）`}
+            {probing ? "正在逐层试…" : `开始试层 · ${probeLayers.length} 层`}
           </button>
         </div>
       </aside>
@@ -276,7 +338,7 @@ export default function TraitBuilder({ ctx }: { ctx: Ctx }) {
                 <div className="mt-5 space-y-3.5">
                   {[
                     ["1", "写提示词", "同一件事，只改语气。两边条数相等。"],
-                    ["2", "试层", "14 / 18 / 22 / 26 各建一次向量、各生成一句。"],
+                    ["2", "试层", "每个填进去的层各建一次向量、各生成一句。"],
                     ["3", "选层保存", "点一行定层，填名字，存进人格库。"],
                   ].map(([n, t, d]) => (
                     <div key={n} className="flex gap-3">

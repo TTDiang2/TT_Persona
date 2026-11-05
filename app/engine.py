@@ -422,12 +422,43 @@ class Engine:
                      max_tokens=60):
         """在多个层各建一次向量、各生成一句，用来看哪层最对味。不落库。"""
         self.require()
+        with self.lock:
+            return self._probe_layers(pairs, layers, alpha, prompt, max_tokens)
+
+    @torch.no_grad()
+    def _probe_layers(self, pairs, layers, alpha, prompt, max_tokens):
+        # 1) 一次前向把所有层的最后 token 激活都抓下来
+        #    （逐层调 build_trait 会让同样的提示词重复跑 N 遍）
+        caps = {L: [] for L in layers}
+        handles = []
+        for L in layers:
+            def h(module, args, output, L=L):
+                x = output[0] if isinstance(output, tuple) else output
+                caps[L].append(x[:, -1, :].float().cpu())
+            handles.append(self.layers[L].register_forward_hook(h))
+        try:
+            for group in ("target", "neutral"):
+                for t in pairs[group]:
+                    enc = self.tok(t, return_tensors="pt", truncation=True,
+                                   max_length=256).to(self.device)
+                    self.model(**enc)
+        finally:
+            for h in handles:
+                h.remove()
+
+        n = len(pairs["target"])
+        vecs = {}
+        for L in layers:
+            acts = torch.cat(caps[L], 0)
+            v = acts[:n].mean(0) - acts[n:].mean(0)
+            vecs[L] = v / v.norm()
+
+        # 2) 逐层生成一句
         out = []
         for L in layers:
-            vec = self.build_trait(pairs, L)
             scale = self.residual_norm(L)
             dev = next(self.layers[L].parameters()).device
-            v = (vec.float() * alpha * scale).to(device=dev, dtype=torch.bfloat16).view(1, 1, -1)
+            v = (vecs[L].float() * alpha * scale).to(device=dev, dtype=torch.bfloat16).view(1, 1, -1)
 
             def h(module, args, output, v=v):
                 if isinstance(output, tuple):
@@ -437,16 +468,15 @@ class Engine:
             handle = self.layers[L].register_forward_hook(h)
             t0 = time.time()
             try:
-                with self.lock:
-                    text = self._render([{"role": "user", "content": prompt}], False)
-                    enc = self.tok(text, return_tensors="pt",
-                                   add_special_tokens=False).to(self.device)
-                    ids = self.model.generate(
-                        **enc, max_new_tokens=max_tokens, do_sample=True,
-                        temperature=0.7, top_p=0.9, repetition_penalty=1.05,
-                        pad_token_id=self.tok.eos_token_id or 0)
-                    reply = self.tok.decode(ids[0][enc["input_ids"].shape[1]:],
-                                            skip_special_tokens=True).strip()
+                text = self._render([{"role": "user", "content": prompt}], False)
+                enc = self.tok(text, return_tensors="pt",
+                               add_special_tokens=False).to(self.device)
+                ids = self.model.generate(
+                    **enc, max_new_tokens=max_tokens, do_sample=True,
+                    temperature=0.7, top_p=0.9, repetition_penalty=1.05,
+                    pad_token_id=self.tok.eos_token_id or 0)
+                reply = self.tok.decode(ids[0][enc["input_ids"].shape[1]:],
+                                        skip_special_tokens=True).strip()
             finally:
                 handle.remove()
             out.append({"layer": L, "text": reply, "seconds": round(time.time() - t0, 2)})

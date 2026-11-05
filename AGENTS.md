@@ -164,7 +164,7 @@ set TT_MODEL_ID=org/目标模型     # 本地目录存在时以后者为准，�
 ```bash
 # 1) 四层各建一次向量、各生成一句
 curl -X POST http://127.0.0.1:8791/api/probe-layers -H "Content-Type: application/json" -d '{
-  "target":[...], "neutral":[...], "layers":[14,18,22,26], "alpha":0.6}'
+  "target":[...], "neutral":[...], "layers":[8,12,16,20,24,28], "alpha":0.6}'
 
 # 2) 选定层后落库
 curl -X POST http://127.0.0.1:8791/api/personas -H "Content-Type: application/json" -d '{
