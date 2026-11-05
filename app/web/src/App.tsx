@@ -38,7 +38,12 @@ export type Ctx = {
   goto: (v: View) => void
   addSpec: (s: NeuronSpec) => void
   injection: Injection
+  /** 定位页的两个工作模式：造人格向量 / 调单个神经元 */
+  locateMode: LocateMode
+  setLocateMode: (m: LocateMode) => void
 }
+
+export type LocateMode = "trait" | "neuron"
 
 export type View = "lab" | "compare" | "locate" | "library"
 
@@ -64,6 +69,7 @@ export default function App() {
   const [alpha, setAlpha] = useState(0.8)
   const [layer, setLayer] = useState(18)
   const [mode, setMode] = useState<"trait" | "mix" | "neuron">("trait")
+  const [locateMode, setLocateMode] = useState<LocateMode>("trait")
   const [mixItems, setMixItems] = useState<{ trait: string; weight: number }[]>([])
   const [specs, setSpecs] = useState<NeuronSpec[]>([])
   const [temperature, setTemperature] = useState(0.7)
@@ -195,6 +201,8 @@ export default function App() {
     goto,
     addSpec,
     injection,
+    locateMode,
+    setLocateMode,
   }
 
   const ready = status?.state === "ready"

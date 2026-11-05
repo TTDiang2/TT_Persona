@@ -9,9 +9,13 @@ import { api, PALETTE } from "@/lib/api"
 
 export default function LibraryView({ ctx }: { ctx: Ctx }) {
   const [editing, setEditing] = useState<Persona | null>(null)
-  const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState<Record<string, number>>({})
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const goCreate = (mode: "trait" | "neuron") => {
+    ctx.setLocateMode(mode)
+    ctx.goto("locate")
+  }
 
   async function patch(p: Persona, body: Partial<Persona>) {
     try {
@@ -59,7 +63,7 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
         <div>
           <div className="text-[14px] font-medium">人格库</div>
           <div className="mt-0.5 text-[11px] text-[#8A8781]">
-            每个方向都是同一批任务、不同语气算出来的差向量
+            方向向量和神经元配方都存在这里，点「去实验台」直接调
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -89,10 +93,10 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
             导出全部
           </a>
           <button
-            onClick={() => setCreating(true)}
+            onClick={() => goCreate("trait")}
             className="rounded-lg bg-[#1C1917] px-3.5 py-1.5 text-[11px] text-white"
           >
-            新建人格
+            新建人格 →
           </button>
         </div>
       </div>
@@ -111,14 +115,21 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
                   style={{ background: p.color }}
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="truncate text-[13px] font-medium">{p.label || p.name}</span>
-                    {p.label !== p.name && (
-                      <span className="shrink-0 text-[10px] text-[#B5B0A8]">{p.name}</span>
-                    )}
+                    <span
+                      className={`shrink-0 rounded px-1 py-0.5 text-[9px] ${
+                        p.kind === "neuron"
+                          ? "bg-[#FCEBEB] text-[#A32D2D]"
+                          : "bg-[#E6F1FB] text-[#185FA5]"
+                      }`}
+                    >
+                      {p.kind === "neuron" ? "神经元" : "方向"}
+                    </span>
                   </div>
                   <div className="mt-0.5 text-[10px] text-[#A8A29E]">
-                    L{p.layer} · 创建于 {p.created}
+                    {p.label !== p.name && <span className="text-[#C4BFB6]">{p.name} · </span>}
+                    L{p.layer} · {p.created}
                   </div>
                   <div className="mt-1.5 line-clamp-2 min-h-[28px] text-[11px] leading-relaxed text-[#78716C]">
                     {p.notes}
@@ -183,20 +194,26 @@ export default function LibraryView({ ctx }: { ctx: Ctx }) {
             </SpotlightCard>
           ))}
 
-          <button
-            onClick={() => setCreating(true)}
-            className="grid min-h-[168px] place-items-center rounded-2xl border border-dashed border-[#DCD8D0] text-[12px] text-[#A8A29E] transition hover:border-[#B5B0A8] hover:text-[#57534E]"
-          >
-            + 新建一个人格方向
-          </button>
+          <div className="flex min-h-[168px] flex-col justify-center gap-2 rounded-2xl border border-dashed border-[#DCD8D0] p-4">
+            <div className="text-[12px] text-[#78716C]">还想要别的性格？</div>
+            <div className="text-[10.5px] leading-relaxed text-[#B5B0A8]">
+              写几对提示词，算出一根方向，试层后存进来。
+            </div>
+            <button
+              onClick={() => goCreate("trait")}
+              className="mt-1 rounded-lg bg-[#F5F3EF] py-1.5 text-[11px] text-[#44403C] hover:bg-[#EDEAE4]"
+            >
+              造人格向量 →
+            </button>
+            <button
+              onClick={() => goCreate("neuron")}
+              className="rounded-lg py-1.5 text-[10.5px] text-[#A8A29E] hover:text-[#57534E]"
+            >
+              或从单个神经元建
+            </button>
+          </div>
         </div>
       </div>
-
-      <CreateDialog
-        ctx={ctx}
-        open={creating}
-        onClose={() => setCreating(false)}
-      />
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-md rounded-2xl">
@@ -275,220 +292,5 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <div className="mb-1 text-[11px] text-[#78716C]">{label}</div>
       {children}
     </label>
-  )
-}
-
-function CreateDialog({ ctx, open, onClose }: { ctx: Ctx; open: boolean; onClose: () => void }) {
-  const [name, setName] = useState("")
-  const [label, setLabel] = useState("")
-  const [layer, setLayer] = useState(18)
-  const [alpha, setAlpha] = useState(0.8)
-  const [color, setColor] = useState(PALETTE[2])
-  const [target, setTarget] = useState("")
-  const [neutral, setNeutral] = useState("")
-  const [busy, setBusy] = useState(false)
-  const [probing, setProbing] = useState(false)
-  const [probe, setProbe] = useState<{ layer: number; text: string; seconds: number }[] | null>(null)
-
-  const lines = (s: string) => {
-  // 有空的整行 → 按空行分组（少样本那种多行一条的写法）
-  // 全是紧凑的行 → 按行分组（每行一条的写法）
-  const parts = /\n\s*\n/.test(s) ? s.split(/\n\s*\n/) : s.split("\n")
-  return parts.map((x) => x.trim()).filter(Boolean)
-}
-
-  async function runProbe() {
-    const t = lines(target)
-    const n = lines(neutral)
-    if (!t.length || t.length !== n.length)
-      return ctx.toast("提示词不匹配", "正负两组数量要一致", "error")
-    setProbing(true)
-    setProbe(null)
-    try {
-      const r = await api.probeLayers({ target: t, neutral: n, layers: [14, 18, 22, 26], alpha })
-      setProbe(r.results)
-    } catch (e) {
-      ctx.toast("试层失败", String(e), "error")
-    } finally {
-      setProbing(false)
-    }
-  }
-
-  async function submit() {
-    const t = lines(target)
-    const n = lines(neutral)
-    if (!name.trim()) return ctx.toast("缺个名字", "英文小写，作为文件名", "error")
-    if (!t.length || t.length !== n.length)
-      return ctx.toast("提示词不匹配", "正负两组数量要一致，每行一条", "error")
-    setBusy(true)
-    try {
-      await api.createPersona({
-        name: name.trim(),
-        label: label.trim() || name.trim(),
-        layer,
-        alpha,
-        color,
-        notes: "",
-        target: t,
-        neutral: n,
-      })
-      await ctx.refreshPersonas()
-      ctx.toast("人格已生成", `${label || name} · ${t.length} 对提示词`)
-      setName("")
-      setLabel("")
-      setTarget("")
-      setNeutral("")
-      onClose()
-    } catch (e) {
-      ctx.toast("生成失败", String(e), "error")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-2xl">
-        <DialogTitle className="text-[14px]">新建人格方向</DialogTitle>
-        <p className="mt-1 text-[11px] leading-relaxed text-[#8A8781]">
-          关键是「同一批任务，只改语气要求」——这样算出来的向量才只装风格，不掺内容。
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <Field label="文件名（英文）">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="sarcastic"
-              className="w-full rounded-lg border border-[#E3E0D9] px-2.5 py-1.5 text-[12px] outline-none focus:border-[#A8A29E]"
-            />
-          </Field>
-          <Field label="显示名">
-            <input
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="阴阳怪气"
-              className="w-full rounded-lg border border-[#E3E0D9] px-2.5 py-1.5 text-[12px] outline-none focus:border-[#A8A29E]"
-            />
-          </Field>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          <Field label="注入层">
-            <input
-              type="number"
-              value={layer}
-              onChange={(e) => setLayer(Number(e.target.value))}
-              className="w-full rounded-lg border border-[#E3E0D9] px-2.5 py-1.5 text-[12px] outline-none focus:border-[#A8A29E]"
-            />
-          </Field>
-          <Field label="默认 α">
-            <input
-              type="number"
-              step={0.05}
-              value={alpha}
-              onChange={(e) => setAlpha(Number(e.target.value))}
-              className="w-full rounded-lg border border-[#E3E0D9] px-2.5 py-1.5 text-[12px] outline-none focus:border-[#A8A29E]"
-            />
-          </Field>
-          <Field label="颜色">
-            <div className="flex gap-1.5 pt-1.5">
-              {PALETTE.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className={`h-4 w-4 rounded-full ring-offset-2 ${
-                    color === c ? "ring-2 ring-[#1C1917]" : ""
-                  }`}
-                  style={{ background: c }}
-                />
-              ))}
-            </div>
-          </Field>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <Field label="目标语气（每行一条）">
-            <textarea
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              rows={8}
-              placeholder={"多条之间空一行：\n\n问：今天天气怎么样？\n答：（凑近耳边）呀～外面有点凉呢\n问：介绍一下你自己。\n答：\n\n问：几点了？\n答：（歪头笑）还早呢～"}
-              className="w-full resize-none rounded-lg border border-[#E3E0D9] px-2.5 py-2 text-[11px] leading-relaxed outline-none [field-sizing:content] focus:border-[#A8A29E]"
-            />
-          </Field>
-          <Field label="中性对照（同任务、平实语气）">
-            <textarea
-              value={neutral}
-              onChange={(e) => setNeutral(e.target.value)}
-              rows={8}
-              placeholder={"多条之间空一行：\n\n问：今天天气怎么样？\n答：今天 18 度，多云。\n问：介绍一下你自己。\n答：\n\n问：几点了？\n答：现在是下午三点。"}
-              className="w-full resize-none rounded-lg border border-[#E3E0D9] px-2.5 py-2 text-[11px] leading-relaxed outline-none [field-sizing:content] focus:border-[#A8A29E]"
-            />
-          </Field>
-        </div>
-
-        {probe && (
-          <div className="mt-3 rounded-xl border border-[#E3E0D9] p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-medium">同一句话，不同层</span>
-              <span className="text-[10px] text-[#A8A29E]">点一行选它</span>
-            </div>
-            <div className="space-y-1.5">
-              {probe.map((r) => (
-                <button
-                  key={r.layer}
-                  onClick={() => { setLayer(r.layer); setProbe(null) }}
-                  className={`block w-full rounded-lg border px-2.5 py-2 text-left transition ${
-                    layer === r.layer
-                      ? "border-[#185FA5] bg-[#E6F1FB]"
-                      : "border-[#E3E0D9] hover:border-[#A8A29E]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] tabular-nums text-[#78716C]">L{r.layer}</span>
-                    <span className="text-[10px] text-[#B5B0A8]">{r.seconds}s</span>
-                    <span className="text-[10px] text-[#B5B0A8]">{r.text.length} 字</span>
-                  </div>
-                  <div className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-[#57534E]">
-                    {r.text || "(空)"}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-2 text-[10px] leading-relaxed text-[#B5B0A8]">
-          每条之间空一行。单行指令（“用 X 的语气回答：…”）可以直接换行；少样本那种多行示范，一定要用空行隔开。
-        </div>
-
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <span className="mr-auto text-[10px] tabular-nums text-[#B5B0A8]">
-            {lines(target).length} 正 / {lines(neutral).length} 负
-          </span>
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-[#E3E0D9] px-3 py-1.5 text-[11px] text-[#57534E]"
-          >
-            取消
-          </button>
-          <button
-            onClick={runProbe}
-            disabled={probing || busy}
-            className="rounded-lg border border-[#E3E0D9] px-3 py-1.5 text-[11px] text-[#57534E] disabled:opacity-50"
-          >
-            {probing ? "试层中…" : "试层"}
-          </button>
-          <button
-            onClick={submit}
-            disabled={busy}
-            className="rounded-lg bg-[#1C1917] px-3.5 py-1.5 text-[11px] text-white disabled:bg-[#D6D2CB]"
-          >
-            {busy ? "计算向量中…" : "生成"}
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }

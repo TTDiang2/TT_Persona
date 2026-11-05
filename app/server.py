@@ -84,8 +84,11 @@ class PersonaIn(BaseModel):
     alpha: float = 0.8
     color: str = "#378ADD"
     notes: str = ""
-    target: list[str]
-    neutral: list[str]
+    target: list[str] = []
+    neutral: list[str] = []
+    # kind="neuron" 时不建向量，只存 specs（层 + 编号 + 剂量）
+    kind: str = "trait"
+    specs: list[dict] = []
 
 
 class PersonaPatch(BaseModel):
@@ -157,6 +160,29 @@ def get_pairs(name: str):
 
 @app.post("/api/personas")
 def create_persona(body: PersonaIn):
+    meta = discover()
+
+    # 神经元型：只记配方，不建向量
+    if body.kind == "neuron":
+        if not body.specs:
+            raise HTTPException(400, "神经元型人格至少要有一条规格")
+        ok, why = engine.supports_neuron()
+        if not ok:
+            raise HTTPException(409, why)
+        meta[body.name] = {
+            "name": body.name,
+            "label": body.label or body.name,
+            "layer": int(body.specs[0]["layer"]),
+            "alpha": body.alpha,
+            "color": body.color,
+            "notes": body.notes,
+            "created": time.strftime("%Y-%m-%d %H:%M"),
+            "kind": "neuron",
+            "specs": body.specs,
+        }
+        save_meta(meta)
+        return {"ok": True, "kind": "neuron", "specs": len(body.specs)}
+
     if not body.target or not body.neutral:
         raise HTTPException(400, "正负提示词都不能为空")
     if len(body.target) != len(body.neutral):
@@ -167,7 +193,6 @@ def create_persona(body: PersonaIn):
     pairs_path(body.name).write_text(
         json.dumps({"target": body.target, "neutral": body.neutral},
                    ensure_ascii=False, indent=2), encoding="utf-8")
-    meta = discover()
     meta[body.name] = {
         "name": body.name,
         "label": body.label or body.name,

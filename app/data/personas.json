@@ -83,5 +83,23 @@
         "dose": -1.0
       }
     ]
+  },
+  "erotic": {
+    "name": "erotic",
+    "label": "erotic",
+    "layer": 14,
+    "alpha": 0.8,
+    "color": "#D4537E",
+    "notes": "",
+    "created": "2026-11-05 18:46"
+  },
+  "whisper": {
+    "name": "whisper",
+    "label": "whisper",
+    "layer": 14,
+    "alpha": 0.8,
+    "color": "#7F77DD",
+    "notes": "",
+    "created": "2026-11-05 19:45"
   }
 }

@@ -11,8 +11,15 @@
 三个核心事实：
 
 1. **模型参数留在文件里，偏置加在计算里。** 人格是一个 `hidden_size` 维的单位向量（4B 是 2560 维，13 KB），每次前向现算成一层偏置。
-2. **两种粒度。** 方向级（`residual += α·‖r‖·v`）通用；神经元级（`residual += Δ·down_proj[:, j]`）要求每层有 dense `down_proj`。
+2. **人格向量是主路径，神经元是备选。** 语气类风格（暧昧、敌对、诗性）弥散在整层里，扫不出单个神经元——只能算方向向量。神经元级（`residual += Δ·down_proj[:, j]`）留给局部行为，且要求每层有 dense `down_proj`。
 3. **单卡串行。** 所有前向共用一个 `engine.lock`，并发请求排队。
+
+人格有两类存储，`kind` 字段区分：
+
+| kind | 存什么 | 换模型后 |
+|---|---|---|
+| `trait`（默认） | `traits/<name>.pt` 向量 + `.json` 提示词 | 用提示词重建即可 |
+| `neuron` | 只有 `specs: [{layer, neuron, dose}]` | 编号失效，需重扫 |
 
 ---
 
@@ -52,8 +59,10 @@ D:/AI/LLM/venv/Scripts/python.exe app/verify.py
 | `app/web/src/App.tsx` | 前端外壳、全局状态 `Ctx`、视图路由（hash） | 改布局/状态 |
 | `app/web/src/components/LabView.tsx` | 实验台：人格栏 + 对话 + 参数 | 改对话交互 |
 | `app/web/src/components/CompareView.tsx` | 三栏并排 | 改对比逻辑 |
-| `app/web/src/components/LocateView.tsx` | 扫描 + 分布图 + 候选表 + 神经元详情 | 改定位体验 |
-| `app/web/src/components/LibraryView.tsx` | 人格卡片墙、新建、导入导出 | 改人格管理 |
+| `app/web/src/components/LocateView.tsx` | 定位页外壳：在「人格向量 / 单个神经元」两个模式间切换 | 加第三个模式 |
+| `app/web/src/components/TraitBuilder.tsx` | 造人格向量：提示词 → 试层 → 存人格，三栏 | 改造人格流程 |
+| `app/web/src/components/NeuronScanner.tsx` | 神经元扫描：相关性/因果 + 配方保存 | 改扫描体验 |
+| `app/web/src/components/LibraryView.tsx` | 人格卡片墙、编辑、导入导出；新建入口跳到定位页 | 改展示 |
 | `app/web/src/components/ParamPanel.tsx` | 右侧参数面板（方向/神经元、层、α、温度） | 改参数项 |
 | `app/web/src/lib/api.ts` | API 客户端、SSE 解析、类型定义 | 加接口后同步 |
 | `traits/*.pt` | 人格向量（`{vec, layer, name, dim}`） | 换模型后重建 |
@@ -142,21 +151,36 @@ set TT_MODEL_ID=org/目标模型     # 本地目录存在时以后者为准，�
 
 ### 6.2 加一个人格
 
-写 `traits/<name>.json`：
+**先试层，再落库。** 别跳过试层——同一根向量注入不同层，出来的是两个人。
+
+写一对提示词（`traits/<name>.json` 或直接传）：
 
 ```json
 {"target": ["用X的语气回答：问题一", "..."], "neutral": ["用平常的语气回答：问题一", "..."]}
 ```
 
-规则：**两边问的事情一致，差别只在语气**；条数相等。然后：
+规则：**两边问的事情一致，差别只在语气**；条数相等；少样本写法必须停在 `答：` 上（向量在最后一个 token 采，停在问号会采错位置）。
 
 ```bash
+# 1) 四层各建一次向量、各生成一句
+curl -X POST http://127.0.0.1:8791/api/probe-layers -H "Content-Type: application/json" -d '{
+  "target":[...], "neutral":[...], "layers":[14,18,22,26], "alpha":0.6}'
+
+# 2) 选定层后落库
 curl -X POST http://127.0.0.1:8791/api/personas -H "Content-Type: application/json" -d '{
-  "name":"sarcastic","label":"阴阳怪气","layer":18,"alpha":0.8,
+  "name":"sarcastic","label":"阴阳怪气","layer":18,"alpha":0.6,
   "color":"#7F77DD","notes":"","target":[...],"neutral":[...]}'
 ```
 
-层号靠试：攻击类 L18、亲密类 L22，实测差异很大。
+层号靠试：攻击类 L18、亲密类 L22、L26 基本推不动。**示范越多向量越强，α 要相应调低**（6 条用 0.6~0.7，8 条用 0.55）。
+
+神经元型人格不建向量，直接存配方：
+
+```bash
+curl -X POST http://127.0.0.1:8791/api/personas -H "Content-Type: application/json" -d '{
+  "name":"villain2","label":"反派二号","kind":"neuron","color":"#E24B4A","notes":"",
+  "specs":[{"layer":14,"neuron":8949,"dose":1.0},{"layer":13,"neuron":7956,"dose":-1.0}]}'
+```
 
 ### 6.3 让 MoE 模型支持神经元模式（进阶）
 
@@ -187,6 +211,8 @@ cd app/desktop && npm install && npx tauri build
 ### 6.6 改前端视图
 
 视图组件在 `components/`，共享状态走 `App.tsx` 的 `Ctx`。加视图要同时改三处：`NAV` 常量、`View` 类型、`App` 里的条件渲染。
+
+定位页的两个模式由 `Ctx.locateMode`（`"trait" | "neuron"`）控制，`setLocateMode` 可以从任何页面切换过去——人格库的「新建人格」就是这么跳到定位页的。
 
 ---
 
